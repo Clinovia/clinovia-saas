@@ -1,0 +1,55 @@
+# app/services/assessment_pipeline.py
+from typing import Type
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from app.db.repositories.assessment_repository import AssessmentRepository
+from app.db.models.assessments import AssessmentType
+from app.services.alzheimer.cache import cache_result
+
+def run_assessment_pipeline(
+    input_schema: BaseModel,
+    db: Session,
+    clinician_id: int,
+    model_function,
+    assessment_type: AssessmentType,
+    model_name: str,
+    model_version: str = "1.0.0",
+    use_cache: bool = True,
+) -> BaseModel:
+    """
+    Generic assessment pipeline for any clinical model:
+    - Runs prediction using the provided model_function
+    - Persists the assessment to the database
+    - Returns typed Pydantic output
+
+    Args:
+        input_schema (BaseModel): validated Pydantic input model
+        db (Session): SQLAlchemy session
+        clinician_id (int): current clinician ID
+        model_function (callable): function that accepts input_schema and returns a Pydantic output
+        assessment_type (AssessmentType): enum for the type of assessment
+        model_name (str): model identifier string
+        model_version (str): version of the model (default: "1.0.0")
+        use_cache (bool): whether to wrap the model function with cache_result (default: True)
+
+    Returns:
+        BaseModel: Pydantic output schema returned by model_function
+    """
+    # Wrap model_function with caching if requested
+    if use_cache:
+        model_function = cache_result(model_function)
+
+    # Run model prediction
+    prediction_schema: BaseModel = model_function(input_schema)
+
+    # Persist assessment to DB
+    AssessmentRepository(db).create(
+        assessment_type=assessment_type,
+        patient_id=getattr(input_schema, "patient_id", None),
+        clinician_id=clinician_id,
+        input_data=input_schema.model_dump(mode='json'),  # ✅ Added mode='json'
+        result=prediction_schema.model_dump(mode='json'),  # ✅ Added mode='json'
+        algorithm_version=model_version,
+    )
+
+    return prediction_schema

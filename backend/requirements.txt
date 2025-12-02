@@ -1,0 +1,44 @@
+# --- Core Framework ---
+fastapi==0.114.2
+uvicorn==0.29.0
+starlette==0.37.2
+
+# --- Database ---
+SQLAlchemy==2.0.44
+psycopg2-binary==2.9.11
+alembic==1.16.5
+
+# --- Pydantic & Config ---
+pydantic==2.9.2
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+
+# --- Auth ---
+passlib==1.7.4
+bcrypt==3.2.2
+python-jose==3.3.0
+
+# --- File Uploads & Parsing ---
+python-multipart==0.0.20
+
+# --- AWS & S3 ---
+boto3==1.40.68
+
+# --- Payments ---
+stripe==13.0.1
+
+# --- ML Model Dependencies ---
+numpy==2.2.6
+pandas==2.3.3
+torch==2.4.1
+torchvision==0.19.1
+torchaudio==2.4.1
+
+# --- Optional: AWS Lambda support ---
+mangum>=0.18.0
+
+# --- Utility ---
+requests==2.31.0
+python-json-logger
+email-validator
+
