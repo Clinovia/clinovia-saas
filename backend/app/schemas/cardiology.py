@@ -84,6 +84,10 @@ class CHA2DS2VAScOutput(BaseModel):
     risk_category: Literal["low", "moderate", "high"]
     model_name: str = Field(default="cha2ds2vasc_rule_v1")
 
+    model_config = {
+        "protected_namespaces": ()  # allow all names
+    }
+
 # ======================
 # 4. ECG Interpreter
 # ======================
