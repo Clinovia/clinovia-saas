@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 
+type Module = {
+  name: string;
+  description: string;
+  inputs: string;
+  outputs: string;
+};
+
 export default function ModulesPage() {
-  const cardiology = [
+  const cardiology: Module[] = [
     { name: "ASCVD", description: "Atherosclerotic cardiovascular disease risk calculator", inputs: "Patient demographics, vitals, labs", outputs: "10-year ASCVD risk score" },
     { name: "Blood Pressure Category", description: "Classifies BP readings", inputs: "Systolic & diastolic BP", outputs: "BP category classification" },
     { name: "CHA2DS2VASc", description: "Stroke risk estimation in AF patients", inputs: "Clinical factors", outputs: "Risk score" },
@@ -11,7 +18,7 @@ export default function ModulesPage() {
     { name: "EF Prediction", description: "Deep learning model for EF prediction", inputs: "Clinical inputs", outputs: "Estimated EF %" },
   ];
 
-  const neurology = [
+  const neurology: Module[] = [
     { name: "Risk Screener", description: "Neurologic risk screening tool", inputs: "Basic clinical inputs", outputs: "Risk assessment" },
     { name: "Diagnosis Screening", description: "Initial diagnostic triage", inputs: "Symptoms, history", outputs: "Suggested differentials" },
     { name: "Diagnosis Basic", description: "Basic diagnostic model", inputs: "Symptoms, vitals", outputs: "Preliminary diagnosis" },
@@ -20,7 +27,7 @@ export default function ModulesPage() {
     { name: "2yr Prognosis Extended", description: "Advanced prognosis model", inputs: "Detailed clinical features", outputs: "Extended 2-year prognosis" },
   ];
 
-  const renderTable = (title, data) => (
+  const renderTable = (title: string, data: Module[]) => (
     <div className="mb-12">
       <h2 className="text-2xl font-semibold mb-4">{title}</h2>
       <table className="w-full border border-gray-300 text-left">

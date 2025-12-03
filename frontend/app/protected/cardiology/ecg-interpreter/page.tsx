@@ -90,6 +90,9 @@ export default function ECGInterpreterPage() {
           />
         </section>
       )}
+      <p className="text-sm text-gray-500 mt-6">
+        ⚠️ For research and planning use only. Not a medical device.
+      </p>
     </main>
   );
 }

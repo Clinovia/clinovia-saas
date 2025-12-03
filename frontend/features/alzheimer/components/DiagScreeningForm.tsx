@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { AlzheimerDiagnosisInput } from "@/features/alzheimer/types";
+import { Race } from "@/features/alzheimer/types";
+import { AlzheimerDiagnosisScreeningInput } from "@/features/alzheimer/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 type Props = {
-  onSubmit: (data: AlzheimerDiagnosisInput) => void;
+  onSubmit: (data: AlzheimerDiagnosisScreeningInput) => void;
   loading?: boolean;
 };
 
@@ -18,8 +24,8 @@ const raceMap: Record<number, string> = {
   7: "Unknown",
 };
 
-export default function AlzheimerForm({ onSubmit, loading = false }: Props) {
-  const [formData, setFormData] = useState<AlzheimerDiagnosisInput>({
+export default function DiagnosisScreeningForm({ onSubmit, loading = false }: Props) {
+  const [formData, setFormData] = useState<AlzheimerDiagnosisScreeningInput>({
     age: 75,
     education_years: 16,
     moca_score: 26,
@@ -30,7 +36,10 @@ export default function AlzheimerForm({ onSubmit, loading = false }: Props) {
     race: 1,
   });
 
-  const handleChange = <K extends keyof AlzheimerDiagnosisInput>(key: K, value: AlzheimerDiagnosisInput[K]) => {
+  const handleChange = <K extends keyof AlzheimerDiagnosisScreeningInput>(
+    key: K,
+    value: AlzheimerDiagnosisScreeningInput[K]
+  ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -39,72 +48,127 @@ export default function AlzheimerForm({ onSubmit, loading = false }: Props) {
     onSubmit(formData);
   };
 
-  const renderRangeInput = (
-    label: string,
-    key: keyof AlzheimerDiagnosisInput,
-    min: number,
-    max: number,
-    step: number = 1
-  ) => (
-    <div>
-      <label className="block font-medium">
-        {label}: {formData[key] as number}
-      </label>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={formData[key] as number}
-        onChange={(e) => handleChange(key, Number(e.target.value) as any)}
-        className="w-full"
-      />
-    </div>
-  );
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {renderRangeInput("Age", "age", 50, 95)}
-      {renderRangeInput("Years of Education", "education_years", 6, 20)}
-      {renderRangeInput("MoCA Score", "moca_score", 0, 30)}
-      {renderRangeInput("ADAS13 Score", "adas13_score", 0, 70, 0.5)}
-      {renderRangeInput("CDR Sum", "cdr_sum", 0, 18, 0.5)}
-      {renderRangeInput("FAQ Total", "faq_total", 0, 30)}
+    <Card className="p-6 rounded-2xl shadow-md">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Age */}
+          <div className="space-y-2">
+            <Label>Age: {formData.age}</Label>
+            <Slider
+              min={50}
+              max={95}
+              step={1}
+              value={[formData.age]}
+              onValueChange={(v) => handleChange("age", v[0])}
+            />
+          </div>
 
-      <div>
-        <label className="block font-medium">Gender</label>
-        <select
-          value={formData.gender}
-          onChange={(e) => handleChange("gender", e.target.value as "female" | "male")}
-          className="w-full border rounded p-1"
-        >
-          <option value="female">Female</option>
-          <option value="male">Male</option>
-        </select>
-      </div>
+          {/* Education Years */}
+          <div className="space-y-2">
+            <Label>Years of Education: {formData.education_years}</Label>
+            <Slider
+              min={6}
+              max={20}
+              step={1}
+              value={[formData.education_years]}
+              onValueChange={(v) => handleChange("education_years", v[0])}
+            />
+          </div>
 
-      <div>
-        <label className="block font-medium">Race</label>
-        <select
-          value={formData.race}
-          onChange={(e) => handleChange("race", Number(e.target.value))}
-          className="w-full border rounded p-1"
-        >
-          {Object.entries(raceMap).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
+          {/* MoCA Score */}
+          <div className="space-y-2">
+            <Label>MoCA Score: {formData.moca_score}</Label>
+            <Slider
+              min={0}
+              max={30}
+              step={1}
+              value={[formData.moca_score]}
+              onValueChange={(v) => handleChange("moca_score", v[0])}
+            />
+          </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        {loading ? "Predicting..." : "🔮 Predict"}
-      </button>
-    </form>
+          {/* ADAS13 Score */}
+          <div className="space-y-2">
+            <Label>ADAS13 Score: {formData.adas13_score}</Label>
+            <Slider
+              min={0}
+              max={70}
+              step={0.5}
+              value={[formData.adas13_score]}
+              onValueChange={(v) => handleChange("adas13_score", v[0])}
+            />
+          </div>
+
+          {/* CDR Sum */}
+          <div className="space-y-2">
+            <Label>CDR Sum: {formData.cdr_sum}</Label>
+            <Slider
+              min={0}
+              max={18}
+              step={0.5}
+              value={[formData.cdr_sum]}
+              onValueChange={(v) => handleChange("cdr_sum", v[0])}
+            />
+          </div>
+
+          {/* FAQ Total */}
+          <div className="space-y-2">
+            <Label>FAQ Total: {formData.faq_total}</Label>
+            <Slider
+              min={0}
+              max={30}
+              step={1}
+              value={[formData.faq_total]}
+              onValueChange={(v) => handleChange("faq_total", v[0])}
+            />
+          </div>
+
+          {/* Gender */}
+          <div className="space-y-2">
+            <Label>Gender</Label>
+            <Select
+              value={formData.gender}
+              onValueChange={(v) =>
+                handleChange("gender", v as "female" | "male")
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Race */}
+          <div className="space-y-2">
+            <Label>Race</Label>
+            <Select
+              value={String(formData.race)}
+              onValueChange={(v) => handleChange("race", Number(v) as Race)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select race" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(raceMap).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Submit */}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Predicting..." : "Predict"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

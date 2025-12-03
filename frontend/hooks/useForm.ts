@@ -1,12 +1,18 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 
-interface UseFormOptions<T> {
+/**
+ * Options for initializing the useForm hook
+ */
+export interface UseFormOptions<T> {
   initialValues: T;
   onSubmit: (values: T) => void | Promise<void>;
   validate?: (values: T) => Partial<Record<keyof T, string>>;
 }
 
-interface UseFormReturn<T> {
+/**
+ * Return type of the useForm hook
+ */
+export interface UseFormReturn<T> {
   values: T;
   errors: Partial<Record<keyof T, string>>;
   touched: Partial<Record<keyof T, boolean>>;
@@ -22,19 +28,6 @@ interface UseFormReturn<T> {
 /**
  * Custom hook for form management
  * Handles form state, validation, and submission
- * 
- * @example
- * const form = useForm({
- *   initialValues: { email: '', password: '' },
- *   onSubmit: async (values) => {
- *     await loginUser(values);
- *   },
- *   validate: (values) => {
- *     const errors: any = {};
- *     if (!values.email) errors.email = 'Email is required';
- *     return errors;
- *   }
- * });
  */
 export function useForm<T extends Record<string, any>>({
   initialValues,
@@ -46,25 +39,15 @@ export function useForm<T extends Record<string, any>>({
   const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /**
-   * Handle input changes
-   */
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
-    // Handle checkboxes
-    const finalValue = type === 'checkbox' 
-      ? (e.target as HTMLInputElement).checked 
-      : value;
+    const finalValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
 
     setValues((prev) => ({
       ...prev,
       [name]: finalValue,
     }));
 
-    // Clear error when user starts typing
     if (errors[name as keyof T]) {
       setErrors((prev) => ({
         ...prev,
@@ -73,20 +56,14 @@ export function useForm<T extends Record<string, any>>({
     }
   };
 
-  /**
-   * Handle input blur (for validation)
-   */
-  const handleBlur = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleBlur = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name } = e.target;
-    
+
     setTouched((prev) => ({
       ...prev,
       [name]: true,
     }));
 
-    // Run validation on blur
     if (validate) {
       const validationErrors = validate(values);
       if (validationErrors[name as keyof T]) {
@@ -98,26 +75,17 @@ export function useForm<T extends Record<string, any>>({
     }
   };
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Mark all fields as touched
-    const allTouched = Object.keys(values).reduce((acc, key) => ({
-      ...acc,
-      [key]: true,
-    }), {});
+    const allTouched = Object.keys(values).reduce((acc, key) => ({ ...acc, [key]: true }), {});
     setTouched(allTouched);
 
-    // Run validation
     if (validate) {
       const validationErrors = validate(values);
       setErrors(validationErrors);
 
-      // If there are errors, don't submit
       if (Object.keys(validationErrors).length > 0) {
         setIsSubmitting(false);
         return;
@@ -133,29 +101,14 @@ export function useForm<T extends Record<string, any>>({
     }
   };
 
-  /**
-   * Set a specific field value
-   */
   const setFieldValue = (field: keyof T, value: any) => {
-    setValues((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setValues((prev) => ({ ...prev, [field]: value }));
   };
 
-  /**
-   * Set a specific field error
-   */
   const setFieldError = (field: keyof T, error: string) => {
-    setErrors((prev) => ({
-      ...prev,
-      [field]: error,
-    }));
+    setErrors((prev) => ({ ...prev, [field]: error }));
   };
 
-  /**
-   * Reset form to initial values
-   */
   const resetForm = () => {
     setValues(initialValues);
     setErrors({});

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Props = {
   output?: EchonetEFOutput;
+  onReset?: () => void; 
 };
 
 export default function EFResult({ output }: Props) {
@@ -36,11 +37,6 @@ export default function EFResult({ output }: Props) {
         <p>
           <strong>Model:</strong> {output.model_name} v{output.model_version}
         </p>
-        {output.video_file && (
-          <p>
-            <strong>Stored Video:</strong> {output.video_file}
-          </p>
-        )}
       </CardContent>
     </Card>
   );

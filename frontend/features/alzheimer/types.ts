@@ -1,3 +1,5 @@
+// frontend/features/alzheimer/types.ts
+
 // ==========================================================
 // Shared Types
 // ==========================================================
@@ -9,8 +11,8 @@ export type RiskCategory = "low" | "moderate" | "high";
 // ==========================================================
 // Alzheimer Diagnosis (Screening)
 // ==========================================================
-export interface AlzheimerDiagnosisInput {
-  patient_id: number | null;
+export interface AlzheimerDiagnosisScreeningInput {
+  patient_id?: string | number | null;
   age: number; // 55 - 95
   education_years: number; // 0 - 30
   moca_score: number; // 0 - 30
@@ -21,8 +23,8 @@ export interface AlzheimerDiagnosisInput {
   race: Race;
 }
 
-export interface AlzheimerDiagnosisOutput {
-  patient_id: number | null;
+export interface AlzheimerDiagnosisScreeningOutput {
+  patient_id?: string | number | null;
   model_name: string; // e.g., "alz-diagnosis-xgboost-adni.joblib"
   model_version: string; // e.g., "1.0.0"
   predicted_class: AlzheimerClass;
@@ -35,7 +37,7 @@ export interface AlzheimerDiagnosisOutput {
 // Alzheimer Risk Screener
 // ==========================================================
 export interface AlzheimerRiskScreenerInput {
-  patient_id: number | null;
+  patient_id?: string | number | null;
   age: number;
   gender: Gender;
   education_years: number;
@@ -45,7 +47,7 @@ export interface AlzheimerRiskScreenerInput {
 }
 
 export interface AlzheimerRiskScreenerOutput {
-  patient_id: number | null;
+  patient_id?: string | number | null;
   model_name: string;
   model_version: string;
   risk_category: RiskCategory;
@@ -56,7 +58,7 @@ export interface AlzheimerRiskScreenerOutput {
 // Alzheimer Diagnosis Basic
 // ==========================================================
 export interface AlzheimerDiagnosisBasicInput {
-  patient_id: number | null;
+  patient_id?: string | number | null;
   AGE: number;
   MMSE_bl: number;
   CDRSB_bl: number;
@@ -70,7 +72,7 @@ export interface AlzheimerDiagnosisBasicInput {
 }
 
 export interface AlzheimerDiagnosisBasicOutput {
-  patient_id: number | null;
+  patient_id?: string | number | null;
   model_name: string;
   model_version: string;
   predicted_class: AlzheimerClass;
@@ -84,19 +86,19 @@ export interface AlzheimerDiagnosisBasicOutput {
 // ==========================================================
 export interface AlzheimerDiagnosisExtendedInput
   extends AlzheimerDiagnosisBasicInput {
-  Hippocampus?: number | null;
-  Ventricles?: number | null;
-  WholeBrain?: number | null;
-  Entorhinal?: number | null;
-  FDG?: number | null;
-  AV45?: number | null;
-  PIB?: number | null;
-  FBB?: number | null;
-  ABETA?: number | null;
-  TAU?: number | null;
-  PTAU?: number | null;
-  mPACCdigit?: number | null;
-  mPACCtrailsB?: number | null;
+  Hippocampus_bl?: number | null;
+  Ventricles_bl?: number | null;
+  WholeBrain_bl?: number | null;
+  Entorhinal_bl?: number | null;
+  FDG_bl?: number | null;
+  AV45_bl?: number | null;
+  PIB_bl?: number | null;
+  FBB_bl?: number | null;
+  ABETA_bl?: number | null;
+  TAU_bl?: number | null;
+  PTAU_bl?: number | null;
+  mPACCdigit_bl?: number | null;
+  mPACCtrailsB_bl?: number | null;
 }
 
 export interface AlzheimerDiagnosisExtendedOutput
@@ -110,6 +112,7 @@ export interface AlzheimerDiagnosisExtendedOutput
 // Common 8 shared features
 // -----------------------------
 interface AlzheimerPrognosis2yrCommonFeatures {
+  patient_id?: string | number | null;
   AGE: number;
   PTGENDER: Gender;
   PTEDUCAT: number;

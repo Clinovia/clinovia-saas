@@ -1,6 +1,6 @@
 "use client";
 
-import { BPCategoryOutput } from "../../types/cardiology";
+import { BPCategoryOutput } from "@/features/cardiology/types";
 
 type Props = {
   output?: BPCategoryOutput;

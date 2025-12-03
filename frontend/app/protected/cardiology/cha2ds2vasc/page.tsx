@@ -80,6 +80,9 @@ export default function CHA2DS2VAScPage() {
           <CHA2DS2VAScResult output={result} />
         </section>
       )}
+      <p className="text-sm text-gray-500 mt-6">
+        ⚠️ For research and planning use only. Not a medical device.
+      </p>
     </main>
   );
 }

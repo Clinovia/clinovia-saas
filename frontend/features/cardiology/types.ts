@@ -4,7 +4,7 @@
 // 1. ASCVD Risk
 // ======================
 export interface ASCVDInput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   age: number; // 40-79
   gender: "male" | "female";
   race: "white" | "black" | "hispanic" | "asian" | "other";
@@ -17,7 +17,7 @@ export interface ASCVDInput {
 }
 
 export interface ASCVDOutput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   risk_percentage: number; // 0-100
   risk_category: "low" | "borderline" | "intermediate" | "high";
   model_name: string; // default: "ascvd_rule_v1"
@@ -27,13 +27,13 @@ export interface ASCVDOutput {
 // 2. Blood Pressure Category
 // ======================
 export interface BPCategoryInput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   systolic_bp: number; // 70-250
   diastolic_bp: number; // 40-150
 }
 
 export interface BPCategoryOutput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   category:
     | "normal"
     | "elevated"
@@ -47,7 +47,7 @@ export interface BPCategoryOutput {
 // 3. CHA₂DS₂-VASc Score
 // ======================
 export interface CHA2DS2VAScInput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   age: number; // 18-120
   gender: "male" | "female";
   congestive_heart_failure: boolean;
@@ -58,7 +58,7 @@ export interface CHA2DS2VAScInput {
 }
 
 export interface CHA2DS2VAScOutput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   score: number; // 0-9
   risk_category: "low" | "moderate" | "high";
   model_name: string; // default: "cha2ds2vasc_rule_v1"
@@ -68,7 +68,7 @@ export interface CHA2DS2VAScOutput {
 // 4. ECG Interpreter
 // ======================
 export interface ECGInterpreterInput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   heart_rate: number; // 20-300
   qrs_duration: number; // 50-200
   qt_interval?: number; // 300-600
@@ -79,7 +79,7 @@ export interface ECGInterpreterInput {
 }
 
 export interface ECGInterpreterOutput {
-  patient_id?: number;
+  patient_id?: string | number | null;
   findings: Array<
     | "normal"
     | "sinus_tachycardia"
@@ -90,8 +90,10 @@ export interface ECGInterpreterOutput {
     | "t_wave_abnormality"
     | "prolonged_qt"
   >;
-  urgency: "routine" | "urgent" | "emergent";
+  rhythm: string;
+  overall_risk: "routine" | "urgent" | "emergent";
   model_name: string; // default: "ecg_interpreter_rule_v1"
+  model_version: string;
 }
 
 // ======================

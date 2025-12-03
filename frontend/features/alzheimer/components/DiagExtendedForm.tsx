@@ -2,6 +2,9 @@
 
 import { useState, FormEvent } from "react";
 import { AlzheimerDiagnosisExtendedInput } from "@/features/alzheimer/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   onSubmit: (data: AlzheimerDiagnosisExtendedInput) => void;
@@ -70,64 +73,64 @@ export default function DiagExtendedForm({ onSubmit, loading = false }: Props) {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl">
-      {/* Gender */}
-      <div>
-        <label htmlFor="PTGENDER" className="block font-medium">Gender</label>
-        <select
-          id="PTGENDER"
-          value={formData.PTGENDER}
-          onChange={(e) => handleChange("PTGENDER", e.target.value)}
-          className="w-full border rounded p-1"
-        >
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-      </div>
+    <Card className="p-6 rounded-2xl shadow-md max-w-3xl mx-auto">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-      {/* APOE4 */}
-      <div>
-        <label htmlFor="APOE4" className="block font-medium">APOE4 Allele Count</label>
-        <input
-          id="APOE4"
-          type="range"
-          min={0}
-          max={2}
-          step={1}
-          value={formData.APOE4}
-          onChange={(e) => handleChange("APOE4", Number(e.target.value))}
-          className="w-full"
-        />
-        <span>{formData.APOE4}</span>
-      </div>
+          {/* Gender */}
+          <div>
+            <Label htmlFor="PTGENDER">Gender</Label>
+            <select
+              id="PTGENDER"
+              value={formData.PTGENDER}
+              onChange={(e) => handleChange("PTGENDER", e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
 
-      {/* Sliders for numeric features */}
-      {sliderFields.map(([key, label, min, max, step]) => (
-        <div key={key}>
-          <label htmlFor={key} className="block font-medium">
-            {label}: {formData[key as keyof AlzheimerDiagnosisExtendedInput]}
-          </label>
-          <input
-            id={key}
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={formData[key] || 0}
-            onChange={(e) => handleChange(key, Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-      ))}
+          {/* APOE4 */}
+          <div>
+            <Label htmlFor="APOE4">APOE4 Allele Count: {formData.APOE4}</Label>
+            <input
+              id="APOE4"
+              type="range"
+              min={0}
+              max={2}
+              step={1}
+              value={formData.APOE4}
+              onChange={(e) => handleChange("APOE4", Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? "Assessing..." : "🧠 Assess Extended Diagnosis"}
-      </button>
-    </form>
+          {/* Sliders */}
+          {sliderFields.map(([key, label, min, max, step]) => (
+            <div key={key}>
+              <Label htmlFor={key}>
+                {label}: {formData[key] ?? 0}
+              </Label>
+              <input
+                id={key}
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={formData[key] ?? 0}
+                onChange={(e) => handleChange(key, Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          ))}
+
+          {/* Submit */}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Assessing..." : "🧠 Assess Extended Diagnosis"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

@@ -50,7 +50,7 @@ export default function RiskScreenerPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-4">🧠 Alzheimer Risk Screener</h1>
+      <h1 className="text-3xl font-bold mb-4">Alzheimer Risk Screener</h1>
       <p className="mb-6">
         Assess the risk of Alzheimer's based on clinical, cognitive, and genetic factors.
       </p>

@@ -3,16 +3,16 @@
 "use client";
 
 import { useState } from "react";
-import AlzheimerForm from "@/features/alzheimer/components/DiagScreeningForm";
-import AlzheimerClassificationResult from "@/features/alzheimer/components/DiagScreeningResult";
-import { AlzheimerDiagnosisInput, AlzheimerDiagnosisOutput } from "@/features/alzheimer/types";
+import DiagnosisScreeningForm from "@/features/alzheimer/components/DiagScreeningForm";
+import DiagnosisScreeningResult from "@/features/alzheimer/components/DiagScreeningResult";
+import { AlzheimerDiagnosisScreeningInput, AlzheimerDiagnosisScreeningOutput } from "@/features/alzheimer/types";
 
 export default function AlzheimerPage() {
-  const [result, setResult] = useState<AlzheimerDiagnosisOutput | null>(null);
+  const [result, setResult] = useState<AlzheimerDiagnosisScreeningOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (data: AlzheimerDiagnosisInput) => {
+  const handleSubmit = async (data: AlzheimerDiagnosisScreeningInput) => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -40,7 +40,7 @@ export default function AlzheimerPage() {
         );
       }
 
-      const resultData: AlzheimerDiagnosisOutput = await response.json();
+      const resultData: AlzheimerDiagnosisScreeningOutput = await response.json();
       setResult(resultData);
     } catch (err: any) {
       console.error("Alzheimer screening error:", err);
@@ -53,7 +53,7 @@ export default function AlzheimerPage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <header>
-        <h1 className="text-3xl font-bold mb-4">🧠 Cognitive Status Classification</h1>
+        <h1 className="text-3xl font-bold mb-4">Cognitive Status Classification</h1>
         <p className="text-gray-700 mb-6">
           Predict cognitive status (Cognitively Normal, Mild Cognitive Impairment, Alzheimer's Disease)
           using clinical and cognitive assessment data.
@@ -61,7 +61,7 @@ export default function AlzheimerPage() {
       </header>
 
       <section>
-        <AlzheimerForm onSubmit={handleSubmit} loading={loading} />
+        <DiagnosisScreeningForm onSubmit={handleSubmit} loading={loading} />
       </section>
 
       {loading && (
@@ -78,7 +78,7 @@ export default function AlzheimerPage() {
 
       {result && (
         <section data-testid="alzheimer-result">
-          <AlzheimerClassificationResult result={result} />
+          <DiagnosisScreeningResult result={result} />
         </section>
       )}
 

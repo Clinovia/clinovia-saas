@@ -2,8 +2,8 @@
 
 import React from "react";
 
-export type AlzheimerDiagnosisOutput = {
-  patient_id?: number | null;
+export type AlzheimerDiagnosisScreeningOutput = {
+  patient_id?: string | number | null;
   model_name?: string;
   model_version?: string;
   predicted_class: "CN" | "MCI" | "AD";
@@ -13,10 +13,10 @@ export type AlzheimerDiagnosisOutput = {
 };
 
 type Props = {
-  result: AlzheimerDiagnosisOutput;
+  result: AlzheimerDiagnosisScreeningOutput;
 };
 
-export const AlzheimerClassificationResult: React.FC<Props> = ({ result }) => {
+export const DiagnosisScreeningResult: React.FC<Props> = ({ result }) => {
   const { patient_id, model_name, model_version, predicted_class, confidence, probabilities, top_features } = result;
 
   const formatPercentage = (value: number) => (value * 100).toFixed(2) + "%";
@@ -26,7 +26,6 @@ export const AlzheimerClassificationResult: React.FC<Props> = ({ result }) => {
       <h2 className="text-xl font-semibold">Alzheimer Classification Result</h2>
 
       {patient_id && <p><strong>Patient ID:</strong> {patient_id}</p>}
-      <p><strong>Model:</strong> {model_name} (v{model_version})</p>
 
       <div className="mt-2">
         <p>
@@ -70,4 +69,4 @@ export const AlzheimerClassificationResult: React.FC<Props> = ({ result }) => {
   );
 };
 
-export default AlzheimerClassificationResult;
+export default DiagnosisScreeningResult;

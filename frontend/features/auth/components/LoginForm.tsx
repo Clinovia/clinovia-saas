@@ -3,25 +3,38 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { login, LoginResponse } from "@/features/auth/api";
 
 export default function LoginForm() {
-  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const res = await login(email, password);
-    if (res?.error) setError(res.error);
+    try {
+      const res: LoginResponse = await login(email, password);
 
-    setLoading(false);
-  }
+      if ("error" in res) {
+        // Handle login error
+        setError(res.error);
+      } else {
+        // Successful login: store token and user info in local storage or auth context
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
+        // You can also call your useAuth context here if needed
+        // e.g., authContext.login(res.token)
+      }
+    } catch (err) {
+      setError("Unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>

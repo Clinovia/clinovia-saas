@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Race } from "@/features/alzheimer/types";
 import { AlzheimerPrognosis2yrExtendedInput, AlzheimerPrognosis2yrExtendedOutput } from "@/features/alzheimer/types";
 
 interface Props {

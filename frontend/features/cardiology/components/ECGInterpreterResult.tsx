@@ -128,38 +128,6 @@ export default function ECGInterpreterResult({ input, interpretation, onReset }:
           </div>
         </div>
 
-        {/* Warnings Section (if any) */}
-        {interpretation.warnings && interpretation.warnings.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">⚠️ Warnings</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {interpretation.warnings.map((warning, idx) => (
-                <li key={idx} className="text-yellow-800">{warning}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Error Section (if any) */}
-        {interpretation.error && (
-          <div className="bg-red-50 border border-red-300 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-red-900 mb-2">❌ Error</h3>
-            <p className="text-red-800">{interpretation.error}</p>
-          </div>
-        )}
-
-        {/* Metadata Section */}
-        <div className="text-xs text-gray-500 space-y-1 pt-4 border-t border-gray-200">
-          <p><strong>Prediction ID:</strong> {interpretation.prediction_id || "N/A"}</p>
-          <p><strong>Status:</strong> {interpretation.status || "N/A"}</p>
-          {interpretation.timestamp && (
-            <p><strong>Timestamp:</strong> {new Date(interpretation.timestamp).toLocaleString()}</p>
-          )}
-          {interpretation.confidence_interval && (
-            <p><strong>Confidence Interval:</strong> {JSON.stringify(interpretation.confidence_interval)}</p>
-          )}
-        </div>
-
         {/* Reset Button */}
         <div className="pt-4 border-t border-gray-200">
           <button

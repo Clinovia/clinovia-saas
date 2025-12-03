@@ -51,7 +51,7 @@ export default function ECGInterpreterForm({ onSubmit, loading = false }: Props)
             <Label htmlFor="heart_rate">Heart Rate: {formData.heart_rate} bpm</Label>
             <Slider
               id="heart_rate"
-              value={[formData.heart_rate]}
+              value={[formData.heart_rate  ?? 0]}
               min={20}
               max={300}
               step={1}
@@ -64,7 +64,7 @@ export default function ECGInterpreterForm({ onSubmit, loading = false }: Props)
             <Label htmlFor="qrs_duration">QRS Duration: {formData.qrs_duration} ms</Label>
             <Slider
               id="qrs_duration"
-              value={[formData.qrs_duration]}
+              value={[formData.qrs_duration ?? 0]}
               min={50}
               max={200}
               step={1}
@@ -77,7 +77,7 @@ export default function ECGInterpreterForm({ onSubmit, loading = false }: Props)
             <Label htmlFor="qt_interval">QT Interval: {formData.qt_interval} ms</Label>
             <Slider
               id="qt_interval"
-              value={[formData.qt_interval]}
+              value={[formData.qt_interval ?? 0]}
               min={300}
               max={600}
               step={1}
@@ -90,7 +90,7 @@ export default function ECGInterpreterForm({ onSubmit, loading = false }: Props)
             <Label htmlFor="pr_interval">PR Interval: {formData.pr_interval} ms</Label>
             <Slider
               id="pr_interval"
-              value={[formData.pr_interval]}
+              value={[formData.pr_interval ?? 0]}
               min={80}
               max={400}
               step={1}

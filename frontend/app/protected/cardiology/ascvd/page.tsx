@@ -54,6 +54,10 @@ export default function ASCVDPage() {
       {loading && <p className="text-blue-600 mt-4">Calculating risk...</p>}
       {error && <p className="text-red-600 mt-4">{error}</p>}
       {result && <ASCVDResult output={result} />}
+      <p className="text-sm text-gray-500 mt-6">
+        ⚠️ For research and planning use only. Not a medical device.
+      </p>
     </div>
   );
+
 }

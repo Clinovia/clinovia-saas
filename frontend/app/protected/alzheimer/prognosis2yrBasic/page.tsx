@@ -58,12 +58,10 @@ export default function Prog2yrBasicPage() {
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-6 shadow-sm">
-        <h1 className="text-3xl font-bold text-gray-800">🧠 Alzheimer's 2-Year Prognosis</h1>
-        <p className="text-gray-600 mt-2">
-          Basic model for predicting progression to Alzheimer's dementia within 2 years
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-4">Alzheimer's 2-Year Prognosis</h1>
+      <p className="text-gray-700 mb-6">
+        Basic model for predicting progression to Alzheimer's dementia within 2 years trained on ADNI data.
+      </p>
 
       {/* Form - only show if no result */}
       {!output && (
@@ -112,6 +110,9 @@ export default function Prog2yrBasicPage() {
           For enhanced predictions with biomarker analysis and SHAP explanations, use the Extended model.
         </p>
       </div>
+      <p className="text-sm text-gray-500 mt-6">
+        ⚠️ For research and planning use only. Not a medical device.
+      </p>
     </div>
   );
 }
