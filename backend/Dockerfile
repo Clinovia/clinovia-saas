@@ -1,7 +1,6 @@
 # ============================
-# Dockerfile for FastAPI + Uvicorn
+# Dockerfile for FastAPI + Uvicorn (App Runner)
 # ============================
-
 FROM python:3.11-slim
 
 # Prevent Python from writing pyc files
@@ -11,9 +10,11 @@ ENV PYTHONUNBUFFERED=1
 # Create directory
 WORKDIR /app
 
-# Install system dependencies (optional but recommended)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    libpq-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirement file first
@@ -25,8 +26,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app code
 COPY . .
 
-# Expose port
-EXPOSE 8000
+# Expose port 8080 for App Runner
+EXPOSE 8080
 
-# Run FastAPI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Add PYTHONPATH to ensure Python can find the app module
+ENV PYTHONPATH=/app
+
+# Run FastAPI server on port 8080
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

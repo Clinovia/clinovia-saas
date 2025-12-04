@@ -61,14 +61,28 @@ app.include_router(history.router, prefix=f"{settings.API_V1_STR}/history", tags
 app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["payments"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 
-# --- Root endpoints ---
+from fastapi import FastAPI
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Application startup initiated")
+    logger.info("✅ Application startup complete")
+
 @app.get("/")
 def root():
+    logger.info("Root endpoint called")
     return {"message": "Clinovia SaaS API", "version": "1.0.0"}
-
 
 @app.get("/health")
 def health():
+    logger.info("Health check endpoint called")
     return {"status": "healthy"}
 
 # --- Lambda adapter ---
