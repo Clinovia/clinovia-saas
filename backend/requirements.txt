@@ -35,9 +35,8 @@ xgboost>=2.0.0
 joblib>=1.4.2
 
 # PyTorch (CPU-only wheels)
-torch==2.2.2
-torchvision==0.17.2
-torchaudio==2.2.2
+torch==2.0.1
+torchvision==0.15.2
 
 # OpenCV (headless to avoid GUI issues)
 opencv-python-headless>=4.8.0
