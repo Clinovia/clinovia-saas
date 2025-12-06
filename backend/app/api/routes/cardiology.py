@@ -10,8 +10,10 @@ This module defines endpoints for cardiology-related assessments:
 
 All endpoints use a generic _make_wrapper() factory for minimal boilerplate.
 """
-from fastapi import APIRouter, Depends, UploadFile, File
+import httpx
+from fastapi import UploadFile, File, HTTPException, APIRouter, Depends
 from sqlalchemy.orm import Session
+from typing import Dict, Any
 
 from app.api.routes.utils.assessment_endpoint import create_assessment_endpoint
 from app.schemas.cardiology import (
@@ -34,9 +36,13 @@ from app.services.cardiology import (
 )
 from app.db.models.assessments import AssessmentType
 from app.db.models.users import User
-from app.api.deps import get_db, get_current_active_user
+from app.api.deps import get_db, get_current_user, get_current_active_user
 
 router = APIRouter(tags=["Cardiology"])
+
+@router.get("/test")
+async def test_route():
+    return {"ok": True}
 
 
 # ================================================================
@@ -105,14 +111,96 @@ create_assessment_endpoint(
 )
 
 # 5️⃣ Ejection Fraction Prediction
-@router.post("/ejection-fraction", response_model=EchonetEFOutput)
-async def ef_endpoint(
+@router.post("/ejection-fraction", response_model=Dict[str, Any])
+async def assess_ejection_fraction(
     video: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)  # ← Changed: User object, not dict
+    patient_id: str = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    return await ef_service.run_ef_prediction(
-        video=video,
-        db=db,
-        clinician_id=current_user.id  # ← Changed: .id instead of ["id"]
-    )
+    """
+    Analyze echocardiogram video and predict ejection fraction.
+    
+    - Accepts .avi, .mp4, or .mov video files
+    - Returns EF percentage and clinical severity classification
+    - Optionally saves to patient record if patient_id provided
+    """
+    # Validate file type
+    allowed_types = ["video/x-msvideo", "video/avi", "video/mp4", "video/quicktime"]
+    if video.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {video.content_type}. "
+                   f"Allowed: .avi, .mp4, .mov"
+        )
+    
+    try:
+        # Call the microservice
+        result = await ef_service.predict_ejection_fraction(video)
+        
+        # Save to database if patient_id provided
+        if patient_id:
+            cardio_repo = CardiologyRepository(db)
+            
+            assessment = cardio_repo.create_ef_assessment(
+                patient_id=patient_id,
+                user_id=current_user.id,
+                ef_value=result["ef_value"],
+                severity=result["severity"],
+                confidence=result.get("confidence"),
+                model_version=result.get("model_version"),
+                metadata={
+                    "filename": result.get("filename"),
+                    "file_size_mb": result.get("file_size_mb")
+                }
+            )
+            
+            result["assessment_id"] = assessment.id
+            result["saved_to_patient"] = True
+        
+        return result
+        
+    except ef_service.EFServiceError as e:
+        # Microservice-specific errors
+        raise HTTPException(status_code=503, detail=str(e))
+    
+    except HTTPException:
+        # Re-raise validation errors
+        raise
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process echocardiogram: {str(e)}"
+        )
+
+
+@router.get("/ejection-fraction/health")
+async def check_ef_service():
+    """
+    Check the health status of the EF prediction microservice.
+    """
+    try:
+        health = await ef_service.check_ef_service_health()
+        return health
+    except Exception as e:
+        return {
+            "status": "error",
+            "model_loaded": False,
+            "error": str(e)
+        }
+
+
+@router.get("/ejection-fraction/model-info")
+async def get_ef_model_info(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get information about the EF prediction model.
+    Requires authentication.
+    """
+    try:
+        info = await ef_service.get_ef_model_info()
+        return info
+    except ef_service.EFServiceError as e:
+        raise HTTPException(status_code=503, detail=str(e))

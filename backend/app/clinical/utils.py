@@ -18,8 +18,6 @@ from functools import lru_cache
 import torch
 import boto3
 
-from app.clinical.cardiology.models.ef3dcnn_model import EF3DCNN
-
 # -----------------------------
 # S3 client / bucket config
 # -----------------------------
@@ -282,51 +280,6 @@ def load_model(
     return model, preprocessor
 
 
-# ============================================================
-# PYTORCH MODEL LOADING (EF CNN)
-# ============================================================
-def load_ef_model(model_key: str, device: str = "cpu"):
-    """
-    Load EF3DCNN PyTorch model from S3.
-    
-    Args:
-        model_key: S3 key to model file (e.g., "models/cardiology/ef/v1/ef3dcnn_epoch17.pth")
-        device: "cpu" or "cuda"
-    
-    Returns:
-        Loaded and initialized EF3DCNN model in eval mode
-    """
-    if not S3_BUCKET:
-        raise ValueError(
-            "S3_BUCKET not configured. Set CLINOVIA_S3_BUCKET environment variable."
-        )
-    
-    print(f"📥 Loading EF model from S3: s3://{S3_BUCKET}/{model_key}")
-    
-    model = EF3DCNN()
-    
-    # Download to temp file
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pth")
-    tmp_file.close()
-    
-    try:
-        _s3_client.download_file(Bucket=S3_BUCKET, Key=model_key, Filename=tmp_file.name)
-        state_dict = torch.load(tmp_file.name, map_location=device, weights_only=True)
-        model.load_state_dict(state_dict)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load EF model from S3: {e}") from e
-    finally:
-        # Clean up temp file
-        try:
-            os.remove(tmp_file.name)
-        except Exception:
-            pass
-    
-    model.to(device)
-    model.eval()
-    return model
-
-
 def is_model_loaded(model: Optional[torch.nn.Module]) -> bool:
     """Check if a PyTorch model is initialized and in eval mode."""
     return (
@@ -354,8 +307,6 @@ __all__ = [
     "preprocess_for_prediction_dataframe",
     "build_df_from_order",
     "load_model",
-    "load_ef_model",
     "is_model_loaded",
     "log_usage",
-    "convert_to_mp4",
 ]
