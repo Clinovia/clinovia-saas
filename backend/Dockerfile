@@ -1,4 +1,7 @@
-# Use official Python image
+# ============================
+# FastAPI + Uvicorn + ML Dockerfile
+# ============================
+
 FROM python:3.11-slim
 
 # Prevent Python from writing pyc files
@@ -9,20 +12,34 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y build-essential libpq-dev curl && rm -rf /var/lib/apt/lists/*
+# - build-essential: for building wheels
+# - libpq-dev: PostgreSQL support for psycopg2
+# - libglib2.0-0, libsm6, libxrender1, libxext6: required for OpenCV headless
+# - libopencv-dev (optional): helps with cv2 linking issues
+# - curl: debugging (optional)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
+    libopencv-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Install Python dependencies first (for caching)
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Install all Python dependencies from your file
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
+# Copy application code
 COPY . .
 
 # Expose port
 EXPOSE 8000
 
-# Run app with uvicorn
+# Start FastAPI with Uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
