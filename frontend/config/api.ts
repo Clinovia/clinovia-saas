@@ -1,3 +1,4 @@
+// clinovia-saas/frontend/config/api.ts
 /**
  * API Endpoints Configuration
  * Centralized API endpoint definitions
@@ -10,29 +11,24 @@ const BASE_PATH = `/api/${API_VERSION}`;
  * Authentication endpoints
  */
 export const AUTH_ENDPOINTS = {
-  LOGIN: '/api/auth/login',
-  SIGNUP: '/api/auth/signup',
-  LOGOUT: '/api/auth/logout',
-  REFRESH: '/api/auth/refresh',
-  FORGOT_PASSWORD: '/api/auth/forgot-password',
-  RESET_PASSWORD: '/api/auth/reset-password',
-  VERIFY_EMAIL: '/api/auth/verify-email',
+  LOGIN: `${BASE_PATH}/auth/login`,
+  SIGNUP: `${BASE_PATH}/auth/signup`,
+  LOGOUT: `${BASE_PATH}/auth/logout`,
+  REFRESH: `${BASE_PATH}/auth/refresh`,
+  FORGOT_PASSWORD: `${BASE_PATH}/auth/forgot-password`,
+  RESET_PASSWORD: `${BASE_PATH}/auth/reset-password`,
+  VERIFY_EMAIL: `${BASE_PATH}/auth/verify-email`,
 } as const;
 
 /**
  * Alzheimer's module endpoints
  */
 export const ALZHEIMER_ENDPOINTS = {
-  // Diagnosis
   DIAGNOSIS_SCREENING: `${BASE_PATH}/alzheimer/diagnosis-screening`,
   DIAGNOSIS_BASIC: `${BASE_PATH}/alzheimer/diagnosis-basic`,
   DIAGNOSIS_EXTENDED: `${BASE_PATH}/alzheimer/diagnosis-extended`,
-  
-  // Prognosis
   PROGNOSIS_2YR_BASIC: `${BASE_PATH}/alzheimer/prognosis-2yr-basic`,
   PROGNOSIS_2YR_EXTENDED: `${BASE_PATH}/alzheimer/prognosis-2yr-extended`,
-  
-  // Risk Assessment
   RISK_SCREENER: `${BASE_PATH}/alzheimer/risk-screener`,
 } as const;
 
@@ -44,7 +40,7 @@ export const CARDIOLOGY_ENDPOINTS = {
   BP_CATEGORY: `${BASE_PATH}/cardiology/bp-category`,
   CHA2DS2_VASC: `${BASE_PATH}/cardiology/cha2ds2vasc`,
   ECG_INTERPRETER: `${BASE_PATH}/cardiology/ecg-interpreter`,
-  EF_PREDICTION: `${BASE_PATH}/cardiology/ef-prediction`,
+  EF_PREDICTION: `${BASE_PATH}/cardiology/ejection-fraction`,
 } as const;
 
 /**
@@ -91,23 +87,32 @@ export const API_ENDPOINTS = {
 
 /**
  * Backend API base URL
- * Falls back to localhost in development
  */
-export const BACKEND_API_URL = 
-  process.env.NEXT_PUBLIC_API_URL || 
-  process.env.NEXT_PUBLIC_BACKEND_URL || 
+export const BACKEND_API_URL =
+  process.env.NEXT_PUBLIC_API_URL?.trim() ||
+  process.env.NEXT_PUBLIC_BACKEND_URL?.trim() ||
   'http://localhost:8000';
 
 /**
  * API request timeout (in milliseconds)
  */
-export const API_TIMEOUT = 30000; // 30 seconds
+export const API_TIMEOUT = 30_000; // 30 seconds
 
 /**
  * API retry configuration
  */
 export const API_RETRY_CONFIG = {
   MAX_RETRIES: 3,
-  RETRY_DELAY: 1000, // 1 second
+  RETRY_DELAY: 1_000, // 1 second
   RETRY_STATUS_CODES: [408, 429, 500, 502, 503, 504],
 } as const;
+
+/**
+ * Type helpers
+ */
+export type AuthEndpoints = typeof AUTH_ENDPOINTS[keyof typeof AUTH_ENDPOINTS];
+export type AlzheimerEndpoints = typeof ALZHEIMER_ENDPOINTS[keyof typeof ALZHEIMER_ENDPOINTS];
+export type CardiologyEndpoints = typeof CARDIOLOGY_ENDPOINTS[keyof typeof CARDIOLOGY_ENDPOINTS];
+export type UserEndpoints = typeof USER_ENDPOINTS[keyof typeof USER_ENDPOINTS];
+export type DashboardEndpoints = typeof DASHBOARD_ENDPOINTS[keyof typeof DASHBOARD_ENDPOINTS];
+export type ReportEndpoints = typeof REPORT_ENDPOINTS[keyof typeof REPORT_ENDPOINTS] | ReturnType<typeof REPORT_ENDPOINTS.GET_BY_ID>;

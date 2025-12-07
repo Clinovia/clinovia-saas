@@ -37,8 +37,6 @@ export interface User {
   created_at: string;
 }
 
-// ===== Example EF Prediction (optional; remove if unused) =====
-
 export interface EFPredictionRequest {
   video_file: File;
 }
