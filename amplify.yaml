@@ -3,15 +3,19 @@ frontend:
   phases:
     preBuild:
       commands:
+        - echo "Installing dependencies in frontend folder"
         - cd frontend
         - npm ci
     build:
       commands:
+        - echo "Building Next.js app"
         - npm run build
   artifacts:
-    baseDirectory: frontend/dist  # Changed from frontend/.next
+    # Where Amplify will look for the build output
+    baseDirectory: frontend/.next
     files:
       - '**/*'
   cache:
+    # Cache node_modules for faster builds
     paths:
-      - frontend/node_modules/**/*
+      - frontend/node_modules/**/* 
