@@ -112,7 +112,7 @@ create_assessment_endpoint(
 
 # 5️⃣ Ejection Fraction Prediction
 @router.post("/ejection-fraction", response_model=Dict[str, Any])
-async def assess_ejection_fraction(
+async def predict_ejection_fraction(
     video: UploadFile = File(...),
     patient_id: str = None,
     current_user: User = Depends(get_current_user),
@@ -125,14 +125,6 @@ async def assess_ejection_fraction(
     - Returns EF percentage and clinical severity classification
     - Optionally saves to patient record if patient_id provided
     """
-    # Validate file type
-    allowed_types = ["video/x-msvideo", "video/avi", "video/mp4", "video/quicktime"]
-    if video.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported file type: {video.content_type}. "
-                   f"Allowed: .avi, .mp4, .mov"
-        )
     
     try:
         # Call the microservice
