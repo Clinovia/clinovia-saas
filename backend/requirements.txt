@@ -48,6 +48,6 @@ mangum>=0.18.0
 requests==2.31.0
 python-json-logger
 email-validator
-httpx==0.27.2
+httpx>=0.24,<0.26
 
 supabase==2.3.4
