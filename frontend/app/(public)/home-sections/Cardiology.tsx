@@ -3,20 +3,29 @@ import Link from "next/link";
 export default function Cardiology() {
   const cardioTools = [
     {
+      name: "Echonet EF Predictor",
+      description:
+        "Predict left ventricular ejection fraction (EF) from echocardiogram videos using deep learning.",
+    },
+    {
       name: "ASCVD",
-      description: "Estimate a patient’s 10-year risk of atherosclerotic cardiovascular disease.",
+      description:
+        "Estimate a patient’s 10-year risk of atherosclerotic cardiovascular disease.",
     },
     {
       name: "Blood Pressure Category",
-      description: "Classify patients based on blood pressure measurements for risk stratification.",
+      description:
+        "Classify patients based on blood pressure measurements for risk stratification.",
     },
     {
       name: "CHA2DS2VASc",
-      description: "Calculate stroke risk in patients with atrial fibrillation.",
+      description:
+        "Calculate stroke risk in patients with atrial fibrillation.",
     },
     {
       name: "ECG Interpreter",
-      description: "Analyze ECG data and provide automated interpretations for research purposes.",
+      description:
+        "Analyze ECG data and provide automated interpretations for research purposes.",
     },
   ];
 
@@ -73,7 +82,7 @@ export default function Cardiology() {
             </div>
 
             <a
-              href="https://huggingface.co/spaces/Clinovia/cardio-tool"
+              href="http://44.204.193.163:7860"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-5 py-2.5 bg-[#8daed6] text-white font-semibold rounded-full hover:bg-[#4782c9] transition-colors text-sm text-center"
