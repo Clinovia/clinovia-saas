@@ -1,5 +1,4 @@
 # backend/app/schemas/users.py
-
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
@@ -9,19 +8,13 @@ from typing import Optional, List
 class UserCreate(BaseModel):
     email: EmailStr
     full_name: str
-    password: str
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+    # Password removed — handled by Supabase
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
-    password: Optional[str] = None
 
 class UserMeUpdate(BaseModel):
     full_name: Optional[str] = None
-    password: Optional[str] = None
 
 # --------------------
 # Output / response models

@@ -1,36 +1,15 @@
+# backend/app/api/routes/users.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.db.session import get_db
 from app.api.deps import get_current_active_user, get_current_superuser
-from app.schemas.users import UserCreate, UserRead, UserUpdate, UserMeUpdate
-from app.schemas.auth import SignUpResponse
+from app.schemas.users import UserRead, UserMeUpdate, UserUpdate
 from app.db.models.users import User
 from app.services.users.user_service import UserService
 
 router = APIRouter(tags=["users"])
-
-# --- Public: Signup (no auth required) ---
-@router.post(
-    "/signup",
-    response_model=SignUpResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Register a new user"
-)
-async def signup(
-    user_in: UserCreate,
-    db: AsyncSession = Depends(get_db)
-):
-    user_service = UserService(db)
-    existing_user = await user_service.get_by_email(user_in.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    user = await user_service.create(user_in)
-    return SignUpResponse(user=UserRead.model_validate(user))
 
 # --- Authenticated: Current user profile ---
 @router.get("/me", response_model=UserRead, summary="Get current user")

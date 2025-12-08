@@ -1,29 +1,35 @@
-# app/db/repositories/user_repository.py
+# backend/app/db/repositories/user_repository.py
+from typing import Optional, List
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.db.repositories.base_repository import BaseRepository
 from app.db.models.users import User
-from sqlalchemy.orm import Session
+
 
 class UserRepository(BaseRepository[User]):
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         super().__init__(User, db)
 
-    # Optional custom methods
-    def get_by_email(self, email: str):
-        return self.db.query(self.model).filter_by(email=email).first()
+    # --- Fetch user by email ---
+    async def get_by_email(self, email: str) -> Optional[User]:
+        result = await self.db.execute(select(self.model).where(self.model.email == email))
+        return result.scalars().first()
 
-    def count_active(self) -> int:
-        """Count users who are active"""
-        # Assuming your User model has an 'is_active' field
-        return self.db.query(self.model).filter(self.model.is_active == True).count()
+    # --- Count active users ---
+    async def count_active(self) -> int:
+        result = await self.db.execute(select(self.model).where(self.model.is_active == True))
+        return result.scalars().count()
 
-    def disable_user(self, user_id: int) -> bool:
-        """Disable a user account"""
-        user = self.db.query(self.model).filter_by(id=user_id).first()
-        if not user or not getattr(user, "is_active", False):
+    # --- Disable user ---
+    async def disable_user(self, user_id: int) -> bool:
+        user = await self.get(user_id)
+        if not user or not user.is_active:
             return False
         user.is_active = False
-        self.db.commit()
+        await self.db.commit()
         return True
-    
-    def list_all(self):
-        return self.db.query(self.model).all()
+
+    # --- List all users ---
+    async def list_all(self) -> List[User]:
+        result = await self.db.execute(select(self.model))
+        return result.scalars().all()

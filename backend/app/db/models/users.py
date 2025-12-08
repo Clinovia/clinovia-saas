@@ -1,3 +1,4 @@
+# backend/app/db/models/users.py
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import Boolean, DateTime, Integer, String, func
@@ -18,7 +19,6 @@ class User(Base):
 
     # Basic info
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Account status
@@ -34,7 +34,7 @@ class User(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=func.now(),  # THIS IS THE KEY FIX
+        default=func.now(),
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
