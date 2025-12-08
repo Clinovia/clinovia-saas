@@ -95,13 +95,3 @@ class BaseModel(Base, IDMixin, TimestampMixin, TableNameMixin):
         return f"<{class_name}({attributes})>"
 
 
-# 4️⃣ Import all models so Base.metadata sees them (Supabase & Alembic compatible)
-from app.db.models.users import User
-from app.db.models.patients import Patient
-from app.db.models.assessments import Assessment
-from app.db.models.alzheimer import AlzheimerAssessment
-from app.db.models.cardiology import CardiologyAssessment
-from app.db.models.analytics import ApiUsageLog
-from app.db.models.billing import Subscription
-from app.db.models.api_keys import APIKey
-from app.db.models.billing import Payment
