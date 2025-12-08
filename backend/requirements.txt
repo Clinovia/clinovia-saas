@@ -1,53 +1,42 @@
-# --- Core Framework ---
+# --- Web / API ---
 fastapi==0.114.2
 uvicorn[standard]==0.29.0
 starlette==0.37.2
+mangum>=0.18.0
 
 # --- Database ---
 SQLAlchemy==2.0.44
 psycopg2-binary==2.9.11
 
-# --- Pydantic & Config ---
-pydantic==2.9.2
-pydantic-settings==2.2.1
-python-dotenv==1.0.1
-
-# --- Auth ---
+# --- Auth & Security ---
+python-jose==3.3.0
 passlib==1.7.4
 bcrypt==3.2.2
-python-jose==3.3.0
-
-# --- File Uploads & Parsing ---
 python-multipart==0.0.20
 
-# --- AWS & S3 ---
-boto3==1.40.68
+# --- Environment & Config ---
+python-dotenv==1.0.1
+pydantic==2.9.2
+pydantic-settings==2.2.1
 
-# --- Payments ---
+# --- AWS & Stripe ---
+boto3==1.40.68
 stripe==13.0.1
 
-# --- ML Dependencies ---
+# --- ML / Data ---
 numpy>=1.24.0,<2.0.0
 pandas>=2.0.0,<3.0.0
 scikit-learn>=1.3.0
 xgboost>=2.0.0
 joblib>=1.4.2
 
-# PyTorch (CPU-only wheels)
-torch==2.2.2
-torchvision==0.17.2
-torchaudio==2.2.2
-
-# OpenCV (headless to avoid GUI issues)
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu
+torchaudio==2.2.2+cpu
 opencv-python-headless>=4.8.0
-
-# --- AWS Lambda optional ---
-mangum>=0.18.0
 
 # --- Utils ---
 requests==2.31.0
+httpx>=0.24,<0.26
 python-json-logger
 email-validator
-httpx>=0.24,<0.26
-
-supabase==2.3.4
