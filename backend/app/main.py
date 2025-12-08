@@ -27,7 +27,6 @@ from app.api.routes import (
     cardiology,
     health,
     history,
-    auth,
     payments,
     users,
 )
@@ -55,7 +54,6 @@ app.add_middleware(
 app.add_middleware(ErrorHandlingMiddleware)
 
 # --- Router registration ---
-app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(alzheimer.router, prefix=f"{settings.API_V1_STR}/alzheimer", tags=["alzheimer"])
 app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])

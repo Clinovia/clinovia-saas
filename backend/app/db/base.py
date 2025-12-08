@@ -4,8 +4,10 @@ SQLAlchemy declarative base and common mixins.
 
 Provides:
 - Base class for all SQLAlchemy models
-- Common mixins (timestamps, soft delete)
+- Common mixins (ID, timestamps, soft delete)
 - Utility methods for models
+- Automatic table name generation
+- Supabase-compatible for PostgreSQL
 """
 
 from datetime import datetime
@@ -13,11 +15,16 @@ from sqlalchemy import Column, Integer, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.sql import func
 
-# 1️⃣ Define Base here — no imports from models
+# 1️⃣ Declarative Base
 Base = declarative_base()
 
 
 # 2️⃣ Mixins
+class IDMixin:
+    """Adds an integer primary key 'id' column"""
+    id = Column(Integer, primary_key=True, index=True)
+
+
 class TimestampMixin:
     """Adds created_at and updated_at timestamps"""
     created_at = Column(
@@ -28,8 +35,9 @@ class TimestampMixin:
     )
     updated_at = Column(
         DateTime(timezone=True),
+        server_default=func.now(),
         onupdate=func.now(),
-        nullable=True
+        nullable=False
     )
 
 
@@ -54,24 +62,28 @@ class TableNameMixin:
     @declared_attr
     def __tablename__(cls):
         import re
-        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', cls.__name__)
-        name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+        name = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', cls.__name__)
+        name = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', name).lower()
         if not name.endswith('s'):
-            name = name + 's'
+            name += 's'
         return name
 
 
-class BaseModel(Base, TimestampMixin):
+# 3️⃣ BaseModel with ID, timestamps, table name, and utility methods
+class BaseModel(Base, IDMixin, TimestampMixin, TableNameMixin):
     """
-    Enhanced base model with timestamps, dict conversion, and repr.
+    Base model with:
+    - Integer primary key `id`
+    - created_at and updated_at timestamps
+    - Automatic __tablename__ generation
+    - to_dict() utility method
+    - __repr__ method
     """
     __abstract__ = True
 
     def to_dict(self):
-        return {
-            column.name: getattr(self, column.name)
-            for column in self.__table__.columns
-        }
+        """Convert model to dictionary"""
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
     def __repr__(self):
         class_name = self.__class__.__name__
@@ -83,21 +95,13 @@ class BaseModel(Base, TimestampMixin):
         return f"<{class_name}({attributes})>"
 
 
-# 3️⃣ Optional: Import models after Base defined
-# This ensures relationships work and avoids circular imports
-try:
-    import app.db.models.users
-    import app.db.models.patients
-    import app.db.models.assessments
-except ImportError:
-    # During testing, models may not yet exist — ignore
-    pass
-
-
-__all__ = [
-    "Base",
-    "BaseModel",
-    "TimestampMixin",
-    "SoftDeleteMixin",
-    "TableNameMixin",
-]
+# 4️⃣ Import all models so Base.metadata sees them (Supabase & Alembic compatible)
+from app.db.models.users import User
+from app.db.models.patients import Patient
+from app.db.models.assessments import Assessment
+from app.db.models.alzheimer import AlzheimerAssessment
+from app.db.models.cardiology import CardiologyAssessment
+from app.db.models.analytics import ApiUsageLog
+from app.db.models.billing import Subscription
+from app.db.models.api_keys import APIKey
+from app.db.models.billing import Payment

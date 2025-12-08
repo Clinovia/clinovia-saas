@@ -1,8 +1,6 @@
-# backend/app/db/models/assessments.py
-from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Enum, cast
+from sqlalchemy import Column, Integer, String, JSON, Enum, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.db.base import Base
+from app.db.base import BaseModel
 import enum
 
 class AssessmentType(str, enum.Enum):
@@ -18,27 +16,16 @@ class AssessmentType(str, enum.Enum):
     CARDIOLOGY_ECG = "cardiology_ecg"
     CARDIOLOGY_EJECTION_FRACTION = "cardiology_ejection_fraction"
 
-class Assessment(Base):
+class Assessment(BaseModel):
     __tablename__ = "assessments"
 
-    id = Column(Integer, primary_key=True, index=True)
     type = Column(Enum(AssessmentType), nullable=False, index=True)
-    patient_id = Column(String, nullable=True)  # Can be "N/A", "123", or None
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True)
     clinician_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     input_data = Column(JSON, nullable=False)
     result = Column(JSON, nullable=False)
     algorithm_version = Column(String(50), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     # Relationships
-    patient = relationship(
-        "Patient",
-        primaryjoin="cast(remote(Patient.id), String) == foreign(Assessment.patient_id)",
-        back_populates="assessments",
-        viewonly=True,
-    )
+    patient = relationship("Patient", back_populates="assessments")
     clinician = relationship("User", back_populates="assessments")
-
-    def __repr__(self):
-        return f"<Assessment(id={self.id}, type={self.type}, patient_id={self.patient_id}, clinician_id={self.clinician_id})>"

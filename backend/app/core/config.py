@@ -1,5 +1,5 @@
 """
-Application configuration settings.
+Application configuration settings, Supabase-ready.
 """
 import os
 import json
@@ -7,9 +7,8 @@ from typing import List
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.engine.url import URL
 
-
 class Settings:
-    """Application settings with support for testing mode and Railway/production deployment."""
+    """Application settings with support for testing mode and Supabase integration."""
 
     # --- General ---
     PROJECT_NAME: str = "Clinovia"
@@ -21,14 +20,12 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
     TESTING: bool = os.getenv("TESTING", "False").lower() == "true"
 
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+    # --- OAuth2 (for Supabase JWTs) ---
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # can replace with Supabase token verification if needed
 
-    # --- PostgreSQL ---
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "clinovia_user")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "clinovia_pass")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "clinovia_db")
-    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
+    # --- Supabase ---
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_KEY: str = os.getenv("SUPABASE_SERVICE_KEY", "")
 
     # --- Stripe ---
     STRIPE_API_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
@@ -56,30 +53,31 @@ class Settings:
         """
         Returns the SQLAlchemy database URL.
         - SQLite in-memory for testing.
-        - Use explicit DATABASE_URL if provided.
-        - Otherwise build from components.
+        - Supabase DATABASE_URL if provided.
+        - Otherwise build from components (fallback).
         """
         if self.TESTING:
             return "sqlite:///:memory:"
 
-        explicit_url = os.getenv("DATABASE_URL")
+        # Use explicit DATABASE_URL first (Supabase)
+        explicit_url = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DATABASE_URL")
         if explicit_url:
             # Convert Heroku-style URL if needed
             if explicit_url.startswith("postgres://"):
                 explicit_url = explicit_url.replace(
-                    "postgres://", "postgresql://", 1
+                    "postgres://", "postgresql+psycopg2://", 1
                 )
             return explicit_url
 
-        # Construct URL from components
+        # Fallback to components (local dev)
         return str(
             URL.create(
                 drivername="postgresql+psycopg2",
-                username=self.POSTGRES_USER,
-                password=self.POSTGRES_PASSWORD,
-                host=self.POSTGRES_HOST,
-                port=self.POSTGRES_PORT,
-                database=self.POSTGRES_DB,
+                username=os.getenv("POSTGRES_USER", "clinovia_user"),
+                password=os.getenv("POSTGRES_PASSWORD", "clinovia_pass"),
+                host=os.getenv("POSTGRES_HOST", "localhost"),
+                port=os.getenv("POSTGRES_PORT", "5432"),
+                database=os.getenv("POSTGRES_DB", "clinovia_db"),
             )
         )
 
