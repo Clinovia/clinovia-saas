@@ -39,22 +39,22 @@ class User(BaseModel):
     # Relationships
     patients: Mapped[List["Patient"]] = relationship(
         "Patient",
-        back_populates="owner",
+        back_populates="user",
         cascade="all, delete-orphan"
     )
     assessments: Mapped[List["Assessment"]] = relationship(
         "Assessment",
-        back_populates="clinician",
+        back_populates="user",
         cascade="all, delete-orphan"
     )
     alzheimer_assessments: Mapped[List["AlzheimerAssessment"]] = relationship(
         "AlzheimerAssessment",
-        back_populates="clinician",
+        back_populates="user",
         cascade="all, delete-orphan"
     )
     cardiology_assessments: Mapped[List["CardiologyAssessment"]] = relationship(
         "CardiologyAssessment",
-        back_populates="clinician",
+        back_populates="user",
         cascade="all, delete-orphan"
     )
     api_keys: Mapped[List["APIKey"]] = relationship(

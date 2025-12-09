@@ -31,7 +31,7 @@ class AlzheimerAssessment(BaseModel):
         index=True
     )
 
-    clinician_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -62,7 +62,7 @@ class AlzheimerAssessment(BaseModel):
         back_populates="alzheimer_assessments"
     )
 
-    clinician: Mapped["User"] = relationship(
+    user: Mapped["User"] = relationship(
         "User",
         back_populates="alzheimer_assessments"
     )

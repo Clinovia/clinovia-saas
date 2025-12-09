@@ -21,11 +21,11 @@ class Assessment(BaseModel):
 
     type = Column(Enum(AssessmentType), nullable=False, index=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True)
-    clinician_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     input_data = Column(JSON, nullable=False)
     result = Column(JSON, nullable=False)
     algorithm_version = Column(String(50), nullable=True)
 
     # Relationships
     patient = relationship("Patient", back_populates="assessments")
-    clinician = relationship("User", back_populates="assessments")
+    user = relationship("User", back_populates="assessments")

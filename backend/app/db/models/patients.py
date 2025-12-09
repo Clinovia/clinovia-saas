@@ -23,7 +23,7 @@ class Patient(BaseModel):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Relationships
-    owner: Mapped["User"] = relationship("User", back_populates="patients")
+    user: Mapped["User"] = relationship("User", back_populates="patients")
 
     # Assessments
     assessments: Mapped[List["Assessment"]] = relationship(
@@ -46,4 +46,4 @@ class Patient(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return f"<Patient(id={self.id}, name={self.first_name} {self.last_name}, clinician_id={self.user_id})>"
+        return f"<Patient(id={self.id}, name={self.first_name} {self.last_name}, user_id={self.user_id})>"
