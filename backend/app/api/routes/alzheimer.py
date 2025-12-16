@@ -12,7 +12,7 @@ All endpoints use a generic _make_wrapper() factory for minimal boilerplate.
 All assessments require a patient_id in the URL path.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.routes.utils.assessment_endpoint import create_assessment_endpoint
@@ -32,6 +32,7 @@ from app.services.alzheimer.risk_screener_service import assess_alzheimer_risk
 
 from app.db.models.assessments import AssessmentType
 from app.db.models.users import User
+from app.api.deps import get_db, get_current_user
 
 router = APIRouter(tags=["Alzheimer Assessments"])
 
@@ -40,12 +41,13 @@ router = APIRouter(tags=["Alzheimer Assessments"])
 # 🔧 Generic wrapper factory
 # ================================================================
 def _make_wrapper(service_func):
-    """
-    Factory that generates a standardized service wrapper for FastAPI endpoints.
-    Signature: (*, input_data, current_user, db) -> output
-    """
-    def wrapper(*, input_data, current_user: User, db: Session):
-        return service_func(input_data, db=db, clinician_id=current_user.id)
+    def wrapper(
+        *,
+        input_data,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)  # ← NOW AUTH IS ENFORCED
+    ):
+        return service_func(input_data, db=db, user_id=current_user.id)
     
     wrapper.__name__ = f"{service_func.__name__}_wrapper"
     return wrapper

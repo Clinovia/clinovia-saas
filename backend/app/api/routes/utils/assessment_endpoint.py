@@ -69,7 +69,7 @@ def create_assessment_endpoint(
             AssessmentRepository(db).create(
                 assessment_type=assessment_type,
                 patient_id=None,
-                clinician_id=current_user.id,
+                user_id=current_user.id,
                 input_data=input_data.model_dump(mode='json') if hasattr(input_data, "model_dump") else dict(input_data),  # ✅ Added mode='json'
                 result=result_dict,
                 algorithm_version="v1.0",

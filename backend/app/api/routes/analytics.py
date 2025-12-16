@@ -1,9 +1,7 @@
-# backend/app/api/routes/analytics.py
-
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from app.api.deps import (
-    CurrentUserDep,
-    CurrentSuperuser,
+    CurrentUser,
     ReportingServiceDep,
     UsageAnalyticsServiceDep,
 )
@@ -18,7 +16,6 @@ from app.schemas.analytics import (
 
 router = APIRouter(tags=["Analytics"])
 
-
 # ===============================
 # Usage Tracking
 # ===============================
@@ -26,7 +23,7 @@ router = APIRouter(tags=["Analytics"])
 @router.post("/track", status_code=status.HTTP_201_CREATED, response_model=StandardResponse)
 async def track_usage(
     event: UsageEventCreate,
-    current_user: CurrentUserDep,
+    current_user: CurrentUser,
     usage_service: UsageAnalyticsServiceDep,
 ):
     """Record an API usage event for the current user."""
@@ -46,7 +43,7 @@ async def track_usage(
 
 @router.get("/summary", response_model=UsageSummaryResponse)
 async def get_my_usage_summary(
-    current_user: CurrentUserDep,
+    current_user: CurrentUser,
     usage_service: UsageAnalyticsServiceDep,
 ):
     """Retrieve usage summary for the current user."""
@@ -56,27 +53,27 @@ async def get_my_usage_summary(
 
 @router.get("/summary/{user_id}", response_model=UsageSummaryResponse)
 async def get_user_usage_summary(
-    user_id: int,
-    admin_user: CurrentSuperuser,
+    user_id: UUID,
+    current_user: CurrentUser,
     usage_service: UsageAnalyticsServiceDep,
 ):
-    """Retrieve usage summary for any user (admin only)."""
+    """Retrieve usage summary for any user (no admin check yet)."""
     summary = usage_service.get_usage_summary(user_id=user_id)
     return UsageSummaryResponse(summary=summary)
 
 
 # ===============================
-# Reporting (Admin Only)
+# Reporting (Admin Only placeholder)
 # ===============================
 
 @router.post("/report", response_model=ReportResponse)
 async def generate_report(
     report_request: ReportRequest,
-    admin_user: CurrentSuperuser,
+    current_user: CurrentUser,
     usage_service: UsageAnalyticsServiceDep,
     reporting_service: ReportingServiceDep,
 ):
-    """Generate a usage and revenue report (admin only)."""
+    """Generate a usage and revenue report (no admin check yet)."""
     try:
         usage_data = usage_service.get_all_usage_data(
             start_date=report_request.start_date,
@@ -103,10 +100,10 @@ async def generate_report(
 
 @router.get("/reports", response_model=ReportListResponse)
 async def list_reports(
-    admin_user: CurrentSuperuser,
+    current_user: CurrentUser,
     reporting_service: ReportingServiceDep,
 ):
-    """List all previously generated reports (admin only)."""
+    """List all previously generated reports (no admin check yet)."""
     reports = reporting_service.list_reports()
     return ReportListResponse(reports=reports, total=len(reports))
 
@@ -114,10 +111,10 @@ async def list_reports(
 @router.get("/reports/{report_id}", response_model=ReportResponse)
 async def get_report(
     report_id: str,
-    admin_user: CurrentSuperuser,
+    current_user: CurrentUser,
     reporting_service: ReportingServiceDep,
 ):
-    """Retrieve a specific report by ID (admin only)."""
+    """Retrieve a specific report by ID (no admin check yet)."""
     report = reporting_service.get_report_by_id(report_id)
     if not report:
         raise HTTPException(
@@ -130,10 +127,10 @@ async def get_report(
 @router.delete("/reports/{report_id}", response_model=StandardResponse)
 async def delete_report(
     report_id: str,
-    admin_user: CurrentSuperuser,
+    current_user: CurrentUser,
     reporting_service: ReportingServiceDep,
 ):
-    """Delete a specific report by ID (admin only)."""
+    """Delete a specific report by ID (no admin check yet)."""
     success = reporting_service.delete_report(report_id)
     if not success:
         raise HTTPException(

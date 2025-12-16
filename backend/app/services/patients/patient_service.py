@@ -1,4 +1,5 @@
 from typing import Optional, List
+from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
 from app.db.models.patients import Patient
 from app.db.repositories.patient_repository import PatientRepository
@@ -17,7 +18,7 @@ class PatientService:
     # READ Operations
     # ========================================
     
-    def get(self, patient_id: int, user_id: int) -> Optional[Patient]:
+    def get(self, patient_id: int, user_id: UUID) -> Optional[Patient]:
         """
         Fetch a patient by ID, ensuring it belongs to the requesting clinician.
         
@@ -36,7 +37,7 @@ class PatientService:
         
         return patient
     
-    def get_with_assessments(self, patient_id: int, user_id: int) -> Optional[Patient]:
+    def get_with_assessments(self, patient_id: int, user_id: UUID) -> Optional[Patient]:
         """
         Fetch a patient with their full assessment history.
         
@@ -58,7 +59,7 @@ class PatientService:
     
     def list_by_clinician(
         self, 
-        user_id: int, 
+        user_id: UUID, 
         skip: int = 0, 
         limit: int = 100,
         search: Optional[str] = None
@@ -94,7 +95,7 @@ class PatientService:
     # CREATE Operations
     # ========================================
     
-    def create(self, patient_data: PatientCreate, user_id: int) -> Patient:
+    def create(self, patient_data: PatientCreate, user_id: UUID) -> Patient:
         # Create a new Pydantic model with user_id added
         patient_dict = patient_data.model_dump()
         patient_dict['user_id'] = user_id
@@ -115,7 +116,7 @@ class PatientService:
         self, 
         patient_id: int, 
         updates: PatientUpdate, 
-        user_id: int
+        user_id: UUID
     ) -> Optional[Patient]:
         """
         Update patient details, ensuring clinician owns the patient.
@@ -145,7 +146,7 @@ class PatientService:
     # DELETE Operations
     # ========================================
     
-    def delete(self, patient_id: int, user_id: int) -> bool:
+    def delete(self, patient_id: int, user_id: UUID) -> bool:
         """
         Delete a patient, ensuring clinician owns the patient.
         
@@ -179,7 +180,7 @@ class PatientService:
         
         return age
     
-    def get_patient_age(self, patient_id: int, user_id: int) -> Optional[int]:
+    def get_patient_age(self, patient_id: int, user_id: UUID) -> Optional[int]:
         """Get a patient's current age."""
         patient = self.get(patient_id, user_id)
         

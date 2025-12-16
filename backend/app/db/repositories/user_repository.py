@@ -2,6 +2,7 @@
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from uuid import UUID
 from app.db.repositories.base_repository import BaseRepository
 from app.db.models.users import User
 
@@ -21,7 +22,7 @@ class UserRepository(BaseRepository[User]):
         return result.scalars().count()
 
     # --- Disable user ---
-    async def disable_user(self, user_id: int) -> bool:
+    async def disable_user(self, user_id: UUID) -> bool:
         user = await self.get(user_id)
         if not user or not user.is_active:
             return False

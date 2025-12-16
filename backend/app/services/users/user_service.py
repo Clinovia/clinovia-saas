@@ -1,4 +1,5 @@
 # backend/app/services/users/user_service.py
+from uuid import UUID
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from app.db.repositories.user_repository import UserRepository
@@ -36,7 +37,24 @@ class UserService:
         user = self.repo.create(new_user)
         return self._to_response(user)
 
-    async def get(self, user_id: int) -> Optional[UserRead]:
+    async def create_if_not_exists(self, uid: str, email: str, full_name: Optional[str] = None) -> UserRead:
+        """
+        Create a new user if they don't exist (used for new Supabase signups).
+        Returns existing user if already present.
+        """
+        user = self.repo.get(uid)
+        if not user:
+            user = User(
+                id=uid,
+                email=email,
+                full_name=full_name,
+                is_active=True,
+                is_superuser=False
+            )
+            self.repo.create(user)
+        return self._to_response(user)
+
+    async def get(self, user_id: UUID) -> Optional[UserRead]:
         user = self.repo.get(user_id)
         return self._to_response(user) if user else None
 
@@ -48,7 +66,7 @@ class UserService:
         users = self.repo.list_all()[skip: skip + limit]
         return [self._to_response(u) for u in users]
 
-    async def update(self, user_id: int, user_update: UserUpdate) -> UserRead:
+    async def update(self, user_id: UUID, user_update: UserUpdate) -> UserRead:
         user = self.repo.get(user_id)
         if not user:
             raise ValueError("User not found")
@@ -61,7 +79,7 @@ class UserService:
         updated_user = self.repo.update(user)
         return self._to_response(updated_user)
 
-    async def delete(self, user_id: int) -> None:
+    async def delete(self, user_id: UUID) -> None:
         """Soft-delete / deactivate a user."""
         user = self.repo.get(user_id)
         if not user:

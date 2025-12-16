@@ -1,7 +1,6 @@
-# backend/app/schemas/common.py
-from uuid import uuid4
+from uuid import uuid4, UUID
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from enum import Enum
 from app.schemas.base import BaseSchema as BaseModel  # Use your BaseModelConfig
 from pydantic import Field
@@ -25,7 +24,7 @@ class ContextBase(BaseModel):
     Base model with audit fields.
     Include user_id and timestamp for logging / tracking.
     """
-    user_id: str = Field(..., description="User ID (from auth)")
+    user_id: UUID = Field(..., description="User ID (from auth)")
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="Event timestamp"
     )
@@ -39,7 +38,7 @@ class PredictionRequestBase(BaseModel):
     Base model for prediction requests.
     Includes audit fields and optional metadata for all prediction requests.
     """
-    user_id: Optional[str] = None
+    user_id: Optional[UUID] = None
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="Request timestamp"
     )
@@ -53,8 +52,8 @@ class PredictionResponseBase(BaseModel):
     structure, error reporting, and audit trails across the application.
     """
     # Unique identification
-    prediction_id: str = Field(
-        default_factory=lambda: str(uuid4()), 
+    prediction_id: UUID = Field(
+        default_factory=uuid4, 
         description="Unique ID for this prediction"
     )
     
@@ -75,7 +74,7 @@ class PredictionResponseBase(BaseModel):
         description="Error message if prediction failed or encountered issues"
     )
     
-    warnings: Optional[list[str]] = Field(
+    warnings: Optional[List[str]] = Field(
         None,
         description="Non-fatal warnings (e.g., 'Using default values for missing features')"
     )
@@ -95,7 +94,7 @@ class PredictionResponseBase(BaseModel):
     class Config:
         json_schema_extra = {
             "success_example": {
-                "prediction_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "prediction_id": str(uuid4()),
                 "model_version": "1.0.0",
                 "status": "success",
                 "error": None,
@@ -104,7 +103,7 @@ class PredictionResponseBase(BaseModel):
                 "timestamp": "2025-01-15T10:30:00Z"
             },
             "error_example": {
-                "prediction_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "prediction_id": str(uuid4()),
                 "model_version": "1.0.0",
                 "status": "error",
                 "error": "Model file not found at path: models/example.pkl",
@@ -113,7 +112,7 @@ class PredictionResponseBase(BaseModel):
                 "timestamp": "2025-01-15T10:30:00Z"
             },
             "partial_example": {
-                "prediction_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "prediction_id": str(uuid4()),
                 "model_version": "1.0.0",
                 "status": "partial",
                 "error": None,

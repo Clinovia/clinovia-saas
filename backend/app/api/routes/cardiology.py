@@ -1,3 +1,4 @@
+# backend/app/api/routes/cardiology.py
 """
 Cardiology assessment routes
 ----------------------------
@@ -10,6 +11,7 @@ This module defines endpoints for cardiology-related assessments:
 
 All endpoints use a generic _make_wrapper() factory for minimal boilerplate.
 """
+
 import httpx
 from fastapi import UploadFile, File, HTTPException, APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -36,7 +38,7 @@ from app.services.cardiology import (
 )
 from app.db.models.assessments import AssessmentType
 from app.db.models.users import User
-from app.api.deps import get_db, get_current_user, get_current_active_user
+from app.api.deps import get_db, get_current_user
 
 router = APIRouter(tags=["Cardiology"])
 
@@ -55,12 +57,12 @@ def _make_wrapper(service_func):
     This version is synchronous.
     """
     def wrapper(
-        *, 
-        input_data, 
-        db: Session = Depends(get_db), 
-        current_user: User = Depends(get_current_active_user)
+        *,
+        input_data,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
     ):
-        return service_func(input_data, db=db, clinician_id=current_user.id)
+        return service_func(input_data, db=db, user_id=current_user.id)
     
     wrapper.__name__ = f"{service_func.__name__}_wrapper"
     return wrapper
@@ -113,10 +115,10 @@ create_assessment_endpoint(
 # 5️⃣ Ejection Fraction Prediction
 @router.post("/ejection-fraction", response_model=Dict[str, Any])
 async def predict_ejection_fraction(
-    video: UploadFile = File(...),
-    patient_id: str = None,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    video: UploadFile = File(...),
+    patient_id: str | None = None,
 ):
     """
     Analyze echocardiogram video and predict ejection fraction.
@@ -125,13 +127,13 @@ async def predict_ejection_fraction(
     - Returns EF percentage and clinical severity classification
     - Optionally saves to patient record if patient_id provided
     """
-    
     try:
         # Call the microservice
         result = await ef_service.predict_ejection_fraction(video)
         
         # Save to database if patient_id provided
         if patient_id:
+            from app.db.repositories.cardiology_repository import CardiologyRepository
             cardio_repo = CardiologyRepository(db)
             
             assessment = cardio_repo.create_ef_assessment(
@@ -153,11 +155,9 @@ async def predict_ejection_fraction(
         return result
         
     except ef_service.EFServiceError as e:
-        # Microservice-specific errors
         raise HTTPException(status_code=503, detail=str(e))
     
     except HTTPException:
-        # Re-raise validation errors
         raise
     
     except Exception as e:

@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.db.models.assessments import Assessment, AssessmentType
 from app.db.repositories.base_repository import BaseRepository
@@ -12,9 +13,9 @@ class AssessmentRepository(BaseRepository[Assessment]):
     def create(
         self,
         *,
-        assessment_type: AssessmentType,  # ✅ renamed from `type`
+        assessment_type: AssessmentType,
         patient_id: Optional[int],
-        clinician_id: int,
+        user_id: UUID,  # ✅ STRING (Supabase-compatible)
         input_data: dict,
         result: dict,
         algorithm_version: str,
@@ -23,9 +24,9 @@ class AssessmentRepository(BaseRepository[Assessment]):
         Create a new assessment record.
 
         Args:
-            assessment_type: The type of assessment (e.g., ALZHEIMER_RISK)
-            patient_id: ID of the patient (can be None for anonymous assessments)
-            clinician_id: ID of the clinician who performed the assessment
+            assessment_type: The type of assessment (e.g., ASCVD_RISK)
+            patient_id: ID of the patient (optional)
+            user_id: Supabase user ID (UUID string)
             input_data: Raw input data used for the assessment
             result: Computed result/output of the assessment
             algorithm_version: Version of the algorithm/model used
@@ -34,9 +35,9 @@ class AssessmentRepository(BaseRepository[Assessment]):
             The persisted Assessment instance
         """
         assessment = Assessment(
-            type=assessment_type.value,  # ✅ this is the field in the DB model
+            type=assessment_type.value,   # DB column
             patient_id=patient_id,
-            clinician_id=clinician_id,
+            user_id=user_id,              # ✅ FIXED
             input_data=input_data,
             result=result,
             algorithm_version=algorithm_version,
@@ -48,11 +49,9 @@ class AssessmentRepository(BaseRepository[Assessment]):
         return assessment
 
     def count_all(self) -> int:
-        """Return total number of assessments."""
         return self.db.query(self.model).count()
 
     def count_by_type(self, assessment_type: str) -> int:
-        """Return total number of assessments of a given type."""
         return (
             self.db.query(self.model)
             .filter(self.model.type == assessment_type)
@@ -60,7 +59,6 @@ class AssessmentRepository(BaseRepository[Assessment]):
         )
 
     def list_by_patient(self, patient_id: int, skip: int = 0, limit: int = 100):
-        """Return assessments for a specific patient."""
         return (
             self.db.query(self.model)
             .filter(self.model.patient_id == patient_id)
@@ -70,7 +68,6 @@ class AssessmentRepository(BaseRepository[Assessment]):
         )
 
     def get_by_id(self, assessment_id: int) -> Optional[Assessment]:
-        """Return a single assessment by ID."""
         return (
             self.db.query(self.model)
             .filter(self.model.id == assessment_id)

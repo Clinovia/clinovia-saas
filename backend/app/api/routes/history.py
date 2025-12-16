@@ -54,7 +54,7 @@ async def get_assessment_by_id(
     
     # Verify ownership - user must be either the patient or the clinician
     is_patient = assessment.patient_id == current_user.id
-    is_clinician = assessment.clinician_id == current_user.id if assessment.clinician_id else False
+    is_clinician = assessment.user_id == current_user.id if assessment.user_id else False
     
     if not (is_patient or is_clinician):
         raise HTTPException(status_code=403, detail="Not authorized to access this assessment")
@@ -77,7 +77,7 @@ async def delete_assessment(
     
     # Verify ownership - user must be either the patient or the clinician
     is_patient = assessment.patient_id == current_user.id
-    is_clinician = assessment.clinician_id == current_user.id if assessment.clinician_id else False
+    is_clinician = assessment.user_id == current_user.id if assessment.user_id else False
     
     if not (is_patient or is_clinician):
         raise HTTPException(status_code=403, detail="Not authorized to delete this assessment")

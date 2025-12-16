@@ -8,7 +8,7 @@ from app.db.models.assessments import AssessmentType
 class AssessmentBase(BaseModel):
     type: AssessmentType
     patient_id: int  # Matches the database model
-    clinician_id: Optional[int] = None  # Matches the database model
+    user_id: Optional[int] = None  # Matches the database model
     input_data: Dict[str, Any]
     result: Dict[str, Any]
     algorithm_version: Optional[str] = None

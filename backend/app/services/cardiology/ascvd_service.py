@@ -1,4 +1,5 @@
 # app/services/cardiology/ascvd_service.py
+from uuid import UUID
 from sqlalchemy.orm import Session
 from app.schemas.cardiology import ASCVDRiskInput, ASCVDRiskOutput
 from app.clinical.cardiology.ascvd import calculate_ascvd
@@ -8,7 +9,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def run_ascvd_prediction(
     input_schema: ASCVDRiskInput,
     db: Session,
-    clinician_id: int,
+    user_id: UUID,
 ) -> ASCVDRiskOutput:
     """
     Full ASCVD risk calculation pipeline using schema validation.
@@ -16,7 +17,7 @@ def run_ascvd_prediction(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        clinician_id=clinician_id,
+        user_id=user_id,
         model_function=calculate_ascvd,
         assessment_type=AssessmentType.CARDIOLOGY_ASCVD,
         model_name="ascvd-rule-v1",

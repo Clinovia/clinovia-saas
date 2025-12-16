@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 from datetime import date, datetime
+from uuid import UUID
 
 # ----------------------------
 # Type alias for Patient ID
@@ -45,7 +46,7 @@ class PatientUpdate(BaseModel):
 # ----------------------------
 class PatientResponse(PatientBase):
     id: PatientID
-    user_id: int  # ✅ Clinician who owns this patient
+    user_id: UUID  # ✅ Clinician who owns this patient
     created_at: datetime
     
     class Config:

@@ -4,13 +4,14 @@ Tracks and stores API usage statistics.
 
 from datetime import datetime
 from typing import Dict, List
+from uuid import UUID
 
 
 class UsageAnalyticsService:
     def __init__(self):
         self._usage_log: List[Dict] = []
 
-    def record_event(self, user_id: str, endpoint: str, status: str):
+    def record_event(self, user_id: UUID, endpoint: str, status: str):
         """Record a usage event for analytics."""
         event = {
             "user_id": user_id,

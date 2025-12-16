@@ -2,6 +2,7 @@
 from typing import Type
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from uuid import UUID
 from app.db.repositories.assessment_repository import AssessmentRepository
 from app.db.models.assessments import AssessmentType
 from app.services.alzheimer.cache import cache_result
@@ -9,7 +10,7 @@ from app.services.alzheimer.cache import cache_result
 def run_assessment_pipeline(
     input_schema: BaseModel,
     db: Session,
-    clinician_id: int,
+    user_id: UUID,
     model_function,
     assessment_type: AssessmentType,
     model_name: str,
@@ -25,7 +26,7 @@ def run_assessment_pipeline(
     Args:
         input_schema (BaseModel): validated Pydantic input model
         db (Session): SQLAlchemy session
-        clinician_id (int): current clinician ID
+        user_id (UUID): current clinician ID
         model_function (callable): function that accepts input_schema and returns a Pydantic output
         assessment_type (AssessmentType): enum for the type of assessment
         model_name (str): model identifier string
@@ -46,7 +47,7 @@ def run_assessment_pipeline(
     AssessmentRepository(db).create(
         assessment_type=assessment_type,
         patient_id=getattr(input_schema, "patient_id", None),
-        clinician_id=clinician_id,
+        user_id=user_id,
         input_data=input_schema.model_dump(mode='json'),  # ✅ Added mode='json'
         result=prediction_schema.model_dump(mode='json'),  # ✅ Added mode='json'
         algorithm_version=model_version,

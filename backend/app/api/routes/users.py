@@ -2,19 +2,38 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from uuid import UUID
 
 from app.db.session import get_db
-from app.api.deps import get_current_active_user, get_current_superuser
+from app.api.deps import CurrentUser
 from app.schemas.users import UserRead, UserMeUpdate, UserUpdate
 from app.db.models.users import User
 from app.services.users.user_service import UserService
 
 router = APIRouter(tags=["users"])
 
+# --- Sync endpoint for new users ---
+@router.post("/sync", response_model=UserRead, summary="Sync user from Supabase to backend DB")
+async def sync_user(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Ensures that a user authenticated via Supabase exists in the backend database.
+    Creates the user if not already present.
+    """
+    user_service = UserService(db)
+    user = await user_service.create_if_not_exists(
+        uid=current_user.id,
+        email=current_user.email,
+        full_name=getattr(current_user, "full_name", None)
+    )
+    return user
+
 # --- Authenticated: Current user profile ---
 @router.get("/me", response_model=UserRead, summary="Get current user")
 async def read_me(
-    current_user: User = Depends(get_current_active_user)
+    current_user: CurrentUser
 ):
     return current_user
 
@@ -22,7 +41,7 @@ async def read_me(
 @router.put("/me", response_model=UserRead, summary="Update current user profile")
 async def update_me(
     user_update: UserMeUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ):
     user_service = UserService(db)
@@ -32,13 +51,11 @@ async def update_me(
     )
     return updated_user
 
+
 # --- Admin-only: Full user management ---
-@router.get(
-    "/",
-    response_model=List[UserRead],
-    dependencies=[Depends(get_current_superuser)],
-    summary="List all users (admin only)"
-)
+# These can be implemented when you have enterprise clients signing up
+"""
+@router.get("/", response_model=List[UserRead], summary="List all users (admin only)")
 async def list_users(
     skip: int = 0,
     limit: int = 100,
@@ -48,65 +65,38 @@ async def list_users(
     users = await user_service.get_multi(skip=skip, limit=limit)
     return users
 
-
-@router.get(
-    "/{user_id}",
-    response_model=UserRead,
-    dependencies=[Depends(get_current_superuser)],
-    summary="Get a specific user (admin only)"
-)
+@router.get("/{user_id}", response_model=UserRead, summary="Get a specific user (admin only)")
 async def read_user(
-    user_id: int,
+    user_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     user_service = UserService(db)
     user = await user_service.get(user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
-
-@router.put(
-    "/{user_id}",
-    response_model=UserRead,
-    dependencies=[Depends(get_current_superuser)],
-    summary="Update any user (admin only)"
-)
+@router.put("/{user_id}", response_model=UserRead, summary="Update any user (admin only)")
 async def update_user(
-    user_id: int,
+    user_id: UUID,
     user_update: UserUpdate,
     db: AsyncSession = Depends(get_db)
 ):
     user_service = UserService(db)
     user = await user_service.get(user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     updated_user = await user_service.update(user_id=user_id, user_update=user_update)
     return updated_user
 
-
-@router.delete(
-    "/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(get_current_superuser)],
-    summary="Deactivate or delete a user (admin only)"
-)
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Deactivate or delete a user (admin only)")
 async def delete_user(
-    user_id: int,
+    user_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
     user_service = UserService(db)
     user = await user_service.get(user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     await user_service.delete(user_id)
-    return
+"""
