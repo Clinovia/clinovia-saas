@@ -56,8 +56,8 @@ EXTENDED_FEATURE_ORDER = [
 NUMERIC_COLUMNS = [c for c in EXTENDED_FEATURE_ORDER if c not in ("PTGENDER", "APOE4")]
 CATEGORICAL_COLUMNS = ["PTGENDER", "APOE4"]
 
-MODEL_PATH = "models/alzheimer/diagnosis_extended/v1/diagnosis_extended_model.pkl"
-PREPROCESSOR_PATH = "models/alzheimer/diagnosis_extended/v1/diagnosis_extended_scaler.pkl"
+MODEL_PATH = "alzheimer/diagnosis/extended/v1/model.pkl"
+PREPROCESSOR_PATH = "alzheimer/diagnosis/extended/v1/scaler.pkl"
 
 # Default values to handle missing data gracefully
 NUMERIC_DEFAULTS = {
@@ -106,8 +106,8 @@ def predict_cognitive_status_extended(
 
         # Load model and preprocessor
         model, preprocessor = load_model(
-            model_key=MODEL_PATH,
-            preprocessor_key=PREPROCESSOR_PATH,
+            MODEL_PATH,
+            PREPROCESSOR_PATH,
         )
         print("DEBUG: model loaded?", model is not None, "preprocessor loaded?", preprocessor is not None)
 

@@ -33,7 +33,7 @@ FEATURE_ORDER = [
     "race",
 ]
 
-MODEL_PATH = "models/alzheimer/diagnosis_screening/v1/diagnosis_screening_model.joblib"
+MODEL_PATH = "alzheimer/diagnosis/screening/v1/model.joblib"
 
 
 # -----------------------------
@@ -72,7 +72,7 @@ def predict_cognitive_status(input_schema: AlzheimerDiagnosisInput) -> Alzheimer
     print(f"DEBUG: df values:\n{df}")
     
     # Load model and predict
-    model, _ = load_model(model_key=MODEL_PATH)
+    model, _ = load_model(MODEL_PATH)
    
     try:
         y_proba = model.predict_proba(df)[0]

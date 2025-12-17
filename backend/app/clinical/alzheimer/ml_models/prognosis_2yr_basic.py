@@ -42,8 +42,8 @@ NUMERIC_COLUMNS = [
 ]
 CATEGORICAL_COLUMNS = ["PTGENDER", "APOE4_count"]
 
-MODEL_PATH = "models/alzheimer/prognosis_2yr_basic/v1/prognosis_2yr_basic_model.pkl"
-PREPROCESSOR_PATH = "models/alzheimer/prognosis_2yr_basic/v1/prognosis_2yr_basic_scaler.pkl"
+MODEL_PATH = "alzheimer/prognosis/2yr_basic/v1/model.pkl"
+PREPROCESSOR_PATH = "alzheimer/prognosis/2yr_basic/v1/scaler.pkl"
 
 NUMERIC_DEFAULTS = {
     "AGE": 75,

@@ -56,8 +56,8 @@ NUMERIC_COLUMNS = [
 # Categorical features (will be encoded but not scaled)
 CATEGORICAL_COLUMNS = ["PTGENDER", "APOE4"]
 
-MODEL_PATH = "models/alzheimer/diagnosis_basic/v1/diagnosis_basic_model.pkl"
-PREPROCESSOR_PATH = "models/alzheimer/diagnosis_basic/v1/diagnosis_basic_scaler.pkl"
+MODEL_PATH = "alzheimer/diagnosis/basic/v1/model.pkl"
+PREPROCESSOR_PATH = "alzheimer/diagnosis/basic/v1/scaler.pkl"
 
 # Default values for missing numeric fields
 NUMERIC_DEFAULTS = {
@@ -92,8 +92,8 @@ def predict_cognitive_status_basic(
 
         # Load model and preprocessor
         model, preprocessor = load_model(
-            model_key=MODEL_PATH,
-            preprocessor_key=PREPROCESSOR_PATH,
+            MODEL_PATH,
+            PREPROCESSOR_PATH,
         )
         print("DEBUG: model loaded?", model is not None, "preprocessor loaded?", preprocessor is not None)
 

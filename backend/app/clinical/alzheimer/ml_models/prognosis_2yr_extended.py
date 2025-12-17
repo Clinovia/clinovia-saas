@@ -29,8 +29,8 @@ NUMERIC_COLUMNS = ['AGE', 'PTEDUCAT', 'ADAS13', 'CDRSB', 'FAQ', 'GDTOTAL', 'ABET
 CATEGORICAL_COLUMNS = ['PTGENDER', 'APOE4_count']
 PROGRESS_EXTENDED_FEATURE_ORDER = ['AGE', 'PTGENDER', 'PTEDUCAT', 'ADAS13', 'CDRSB', 'FAQ', 'APOE4_count', 'GDTOTAL', 'ABETA', 'TAU', 'PTAU']
 
-MODEL_PATH = "models/alzheimer/prognosis_2yr_extended/v1/prognosis_2yr_extended_model.pkl"
-PREPROCESSOR_PATH = "models/alzheimer/prognosis_2yr_extended/v1/prognosis_2yr_extended_scaler.pkl"
+MODEL_PATH = "alzheimer/prognosis/2yr_extended/v1/model.pkl"
+PREPROCESSOR_PATH = "alzheimer/prognosis/2yr_extended/v1/scaler.pkl"
 
 # Domain-informed defaults for missing values
 NUMERIC_DEFAULTS = {

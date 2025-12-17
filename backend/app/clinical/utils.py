@@ -1,33 +1,40 @@
 """
 Utility functions for clinical AI modules
 -----------------------------------------
-Includes model loading, preprocessing, logging, helper functions, and video conversion.
+Includes model loading (local-first), preprocessing,
+logging, helper functions, and video conversion.
 """
+
+from __future__ import annotations
 
 import os
 import uuid
-import joblib
-import pandas as pd
-import numpy as np
 import subprocess
-from pathlib import Path
-from typing import Any, Dict, Optional, List, Tuple
+import joblib
 import tempfile
+from pathlib import Path
 from functools import lru_cache
+from typing import Any, Dict, Optional, List, Tuple
 
+import numpy as np
+import pandas as pd
 import torch
-import boto3
-
-# -----------------------------
-# S3 client / bucket config
-# -----------------------------
-S3_BUCKET = os.environ.get("CLINOVIA_S3_BUCKET", "clinovia.ai")
-_s3_client = boto3.client("s3")
-
 
 # ============================================================
-# Gender Encoding
+# GLOBAL CONFIG
 # ============================================================
+
+MODEL_ROOT = Path(
+    os.environ.get("CLINOVIA_MODEL_ROOT", "/opt/clinovia/models")
+).resolve()
+
+if not MODEL_ROOT.exists():
+    raise RuntimeError(f"MODEL_ROOT does not exist: {MODEL_ROOT}")
+
+# ============================================================
+# GENDER ENCODING
+# ============================================================
+
 def encode_gender(gender: Optional[str]) -> int:
     """
     Encode gender as integer:
@@ -35,42 +42,54 @@ def encode_gender(gender: Optional[str]) -> int:
       - 1 = female
       - 2 = unknown / other
     """
-    if gender is None:
+    if not gender:
         return 2
 
     gender = gender.lower()
     if gender in ("male", "m"):
         return 0
-    elif gender in ("female", "f"):
+    if gender in ("female", "f"):
         return 1
     return 2
 
 
 # ============================================================
-# Default Filling
+# DEFAULT FILLING
 # ============================================================
-def fill_defaults(input_dict: dict, numeric_defaults: dict, categorical_defaults: dict) -> dict:
-    """
-    Fill missing numeric and categorical fields with defaults.
-    """
-    filled = input_dict.copy()
 
-    # Numeric fields
-    for key, default_value in numeric_defaults.items():
-        if key not in filled or filled[key] is None:
-            filled[key] = default_value
+def fill_defaults(
+    input_dict: Dict[str, Any],
+    numeric_defaults: Dict[str, Any],
+    categorical_defaults: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Fill missing numeric and categorical fields with defaults."""
+    filled = dict(input_dict)
 
-    # Categorical fields
-    for key, default_value in categorical_defaults.items():
-        if key not in filled or filled[key] is None:
-            filled[key] = default_value
+    for key, default in numeric_defaults.items():
+        if filled.get(key) is None:
+            filled[key] = default
+
+    for key, default in categorical_defaults.items():
+        if filled.get(key) is None:
+            filled[key] = default
 
     return filled
 
 
 # ============================================================
-# Preprocessing helpers
+# PREPROCESSING HELPERS
 # ============================================================
+
+def _encode_categoricals(
+    data: Dict[str, Any],
+    categorical_columns: List[str],
+) -> None:
+    """In-place categorical encoding."""
+    for col in categorical_columns:
+        if col == "PTGENDER" and col in data:
+            data[col] = encode_gender(data[col])
+
+
 def preprocess_for_prediction_dataframe(
     input_data: Dict[str, Any],
     numeric_defaults: Dict[str, Any],
@@ -80,42 +99,21 @@ def preprocess_for_prediction_dataframe(
     categorical_columns: List[str],
     scaler: Optional[Any] = None,
 ) -> pd.DataFrame:
-    """Preprocess input data and return as DataFrame with proper feature names."""
-    data_filled = fill_defaults(input_data, numeric_defaults, categorical_defaults)
-    
-    for cat_col in categorical_columns:
-        if cat_col == "PTGENDER" and cat_col in data_filled:
-            data_filled[cat_col] = encode_gender(data_filled[cat_col])
-    
-    try:
-        numeric_values = [data_filled[col] for col in numeric_columns]
-    except KeyError as e:
-        raise KeyError(f"Missing required numeric feature after defaults: {e}")
-    
-    if scaler:
-        numeric_df = pd.DataFrame([numeric_values], columns=numeric_columns)
-        numeric_scaled = scaler.transform(numeric_df)
-        numeric_scaled_dict = dict(zip(numeric_columns, numeric_scaled[0]))
-    else:
-        numeric_scaled_dict = dict(zip(numeric_columns, numeric_values))
+    """Return preprocessed input as a pandas DataFrame."""
+    data = fill_defaults(input_data, numeric_defaults, categorical_defaults)
+    _encode_categoricals(data, categorical_columns)
 
-    try:
-        categorical_values = [data_filled[col] for col in categorical_columns]
-    except KeyError as e:
-        raise KeyError(f"Missing required categorical feature after defaults: {e}")
-    
-    categorical_dict = dict(zip(categorical_columns, categorical_values))
-    feature_dict = {**numeric_scaled_dict, **categorical_dict}
-    
-    try:
-        X_df = pd.DataFrame([feature_dict], columns=feature_order)
-    except KeyError as e:
-        raise ValueError(
-            f"Feature '{e.args[0]}' in feature_order not found in processed features. "
-            f"Available: {list(feature_dict.keys())}"
-        )
-    
-    return X_df
+    numeric_df = pd.DataFrame([[data[col] for col in numeric_columns]],
+                              columns=numeric_columns)
+
+    if scaler:
+        numeric_df[:] = scaler.transform(numeric_df)
+
+    categorical_df = pd.DataFrame([[data[col] for col in categorical_columns]],
+                                  columns=categorical_columns)
+
+    X = pd.concat([numeric_df, categorical_df], axis=1)
+    return X.reindex(columns=feature_order)
 
 
 def preprocess_for_prediction(
@@ -127,67 +125,41 @@ def preprocess_for_prediction(
     categorical_columns: List[str],
     scaler: Optional[Any] = None,
 ) -> np.ndarray:
-    """Preprocess input data and return as numpy array."""
-    data_filled = fill_defaults(input_data, numeric_defaults, categorical_defaults)
-    
-    for cat_col in categorical_columns:
-        if cat_col == "PTGENDER" and cat_col in data_filled:
-            data_filled[cat_col] = encode_gender(data_filled[cat_col])
-    
-    try:
-        numeric_values = [data_filled[col] for col in numeric_columns]
-    except KeyError as e:
-        raise KeyError(f"Missing required numeric feature after defaults: {e}")
-    
-    if scaler:
-        numeric_array = np.array(numeric_values, dtype=float).reshape(1, -1)
-        numeric_scaled = scaler.transform(numeric_array).flatten()
-    else:
-        numeric_scaled = np.array(numeric_values, dtype=float).flatten()
-    
-    try:
-        categorical_values = [data_filled[col] for col in categorical_columns]
-    except KeyError as e:
-        raise KeyError(f"Missing required categorical feature after defaults: {e}")
-    
-    feature_dict = {}
-    for col, val in zip(numeric_columns, numeric_scaled):
-        feature_dict[col] = val
-    for col, val in zip(categorical_columns, categorical_values):
-        feature_dict[col] = val
-    
-    try:
-        X = np.array([feature_dict[f] for f in feature_order], dtype=float).reshape(1, -1)
-    except KeyError as e:
-        raise ValueError(
-            f"Feature '{e.args[0]}' in feature_order not found in processed features. "
-            f"Available: {list(feature_dict.keys())}"
-        )
-    
+    """Return preprocessed input as numpy array."""
+    df = preprocess_for_prediction_dataframe(
+        input_data,
+        numeric_defaults,
+        categorical_defaults,
+        feature_order,
+        numeric_columns,
+        categorical_columns,
+        scaler,
+    )
+
+    X = df.to_numpy(dtype=float)
     if X.shape[1] != len(feature_order):
         raise ValueError(
-            f"Output shape mismatch: expected {len(feature_order)} features, "
-            f"got {X.shape[1]}. Check feature_order vs numeric/categorical columns."
+            f"Feature mismatch: expected {len(feature_order)}, got {X.shape[1]}"
         )
-    
     return X
 
 
-def build_df_from_order(order: Dict[str, Any], columns: Optional[List[str]] = None) -> pd.DataFrame:
-    """Build DataFrame from dictionary with optional column ordering."""
+def build_df_from_order(
+    order: Dict[str, Any],
+    columns: Optional[List[str]] = None,
+) -> pd.DataFrame:
     df = pd.DataFrame([order])
-    if columns:
-        df = df.reindex(columns=columns)
-    return df
+    return df.reindex(columns=columns) if columns else df
 
 
 # ============================================================
-# Video Conversion
+# VIDEO CONVERSION
 # ============================================================
+
 def convert_to_mp4(input_path: str) -> str:
-    """Convert video to MP4 format using FFmpeg."""
+    """Convert video to MP4 using FFmpeg."""
     input_path = Path(input_path)
-    output_path = Path(f"/tmp/{uuid.uuid4().hex}.mp4")
+    output_path = Path("/tmp") / f"{uuid.uuid4().hex}.mp4"
 
     command = [
         "ffmpeg",
@@ -200,88 +172,62 @@ def convert_to_mp4(input_path: str) -> str:
     ]
 
     try:
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"FFmpeg conversion failed: {e.stderr.decode()}")
+        raise RuntimeError(f"FFmpeg failed: {e.stderr.decode()}")
 
     if not output_path.exists() or output_path.stat().st_size == 0:
-        raise RuntimeError("FFmpeg conversion produced an empty file.")
+        raise RuntimeError("FFmpeg produced empty output")
 
     return str(output_path)
 
 
 # ============================================================
-# MODEL LOADING FROM S3
+# MODEL LOADING (LOCAL-FIRST, NO S3)
 # ============================================================
+
 @lru_cache(maxsize=32)
-def _download_s3_to_tempfile(bucket: str, key: str) -> str:
-    """
-    Download S3 object to a temporary file and return the local path.
-    Results are cached by (bucket, key) to avoid redundant downloads.
-    """
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=Path(key).suffix)
-    tmp.close()
-    _s3_client.download_file(Bucket=bucket, Key=key, Filename=tmp.name)
-    return tmp.name
+def _load_joblib(path: Path) -> Any:
+    if not path.exists():
+        raise FileNotFoundError(f"Model file not found: {path}")
+    return joblib.load(path)
 
 
 def load_model(
-    model_key: str, 
-    preprocessor_key: Optional[str] = None
+    model_rel_path: str,
+    preprocessor_rel_path: Optional[str] = None,
 ) -> Tuple[Any, Optional[Any]]:
     """
-    Download and load sklearn/joblib model and optional preprocessor from S3.
-    
-    All models are stored in s3://clinovia.ai/
-    
-    Args:
-        model_key: S3 key to model file (e.g., "models/alzheimer/diagnosis_screening/v1/model.joblib")
-        preprocessor_key: Optional S3 key to preprocessor (e.g., scaler)
-    
-    Returns:
-        Tuple of (model, preprocessor)
-    
+    Load model and optional preprocessor from local disk.
+
+    Paths are relative to MODEL_ROOT.
+
     Example:
-        model, scaler = load_model(
-            "models/alzheimer/diagnosis_screening/v1/model.joblib",
-            "models/alzheimer/diagnosis_screening/v1/scaler.joblib"
+        load_model(
+            "alzheimer/diagnosis/basic/v1/model.pkl",
+            "alzheimer/diagnosis/basic/v1/scaler.pkl"
         )
     """
-    if not S3_BUCKET:
-        raise ValueError(
-            "S3_BUCKET not configured. Set CLINOVIA_S3_BUCKET environment variable."
-        )
-    
-    print(f"📥 Loading model from S3: s3://{S3_BUCKET}/{model_key}")
-    
-    model_path = _download_s3_to_tempfile(S3_BUCKET, model_key)
-    try:
-        model = joblib.load(model_path)
-    except Exception as e:
-        try:
-            os.remove(model_path)
-        except Exception:
-            pass
-        raise RuntimeError(f"Failed to load model from S3: {e}") from e
-    
+    model_path = MODEL_ROOT / model_rel_path
+    print(f"📦 Loading model: {model_path}")
+    model = _load_joblib(model_path)
+
     preprocessor = None
-    if preprocessor_key:
-        print(f"📥 Loading preprocessor from S3: s3://{S3_BUCKET}/{preprocessor_key}")
-        pre_path = _download_s3_to_tempfile(S3_BUCKET, preprocessor_key)
-        try:
-            preprocessor = joblib.load(pre_path)
-        except Exception as e:
-            try:
-                os.remove(pre_path)
-            except Exception:
-                pass
-            raise RuntimeError(f"Failed to load preprocessor from S3: {e}") from e
-    
+    if preprocessor_rel_path:
+        pre_path = MODEL_ROOT / preprocessor_rel_path
+        print(f"📦 Loading preprocessor: {pre_path}")
+        preprocessor = _load_joblib(pre_path)
+
     return model, preprocessor
 
 
 def is_model_loaded(model: Optional[torch.nn.Module]) -> bool:
-    """Check if a PyTorch model is initialized and in eval mode."""
+    """Check if PyTorch model is initialized and in eval mode."""
     return (
         model is not None
         and isinstance(model, torch.nn.Module)
@@ -292,14 +238,23 @@ def is_model_loaded(model: Optional[torch.nn.Module]) -> bool:
 # ============================================================
 # LOGGING
 # ============================================================
-def log_usage(function_name: str, metadata: dict | None = None, result: dict | None = None):
-    """Simple, uniform usage logging."""
-    print(f"[{function_name}] METADATA: {metadata} | RESULT: {result}")
+
+def log_usage(
+    function_name: str,
+    metadata: Optional[dict] = None,
+    result: Optional[dict] = None,
+) -> None:
+    print(
+        f"[{function_name}] "
+        f"METADATA={metadata or {}} "
+        f"RESULT={result or {}}"
+    )
 
 
 # ============================================================
 # EXPORTS
 # ============================================================
+
 __all__ = [
     "encode_gender",
     "fill_defaults",
