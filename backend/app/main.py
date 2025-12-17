@@ -1,3 +1,4 @@
+# backend/app/main.py
 """
 Main FastAPI application entry point.
 """

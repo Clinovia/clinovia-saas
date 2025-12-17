@@ -1,4 +1,3 @@
-# backend/app/db/config.py
 import os
 from pydantic_settings import BaseSettings
 
@@ -16,7 +15,7 @@ class Settings(BaseSettings):
     def sqlalchemy_url(self) -> str:
         """
         Ensures the URL is SQLAlchemy-compatible.
-        Converts Heroku-style `postgres://` URLs to `postgresql://`.
+        Converts `postgres://` URLs to `postgresql://`.
         """
         url = self.DATABASE_URL
         if url.startswith("postgres://"):

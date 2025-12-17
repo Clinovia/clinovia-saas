@@ -1,4 +1,4 @@
-# app/clinical/alzheimer/ml_models/diagnosis_screening.py
+# ~/Health_AI/clinovia-saas/backend/app/clinical/alzheimer/ml_models/diagnosis_screening.py
 """
 Model inference logic for Alzheimer's diagnosis (CN, MCI, AD).
 Uses pre-trained XGBoost pipeline model (includes preprocessing internally).
