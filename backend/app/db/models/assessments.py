@@ -19,13 +19,16 @@ class AssessmentType(str, enum.Enum):
 class Assessment(BaseModel):
     __tablename__ = "assessments"
 
-    type = Column(Enum(AssessmentType), nullable=False, index=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    specialty = Column(String, nullable=False)
+    assessment_type = Column(Enum(AssessmentType), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    clinician_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     input_data = Column(JSON, nullable=False)
-    result = Column(JSON, nullable=False)
-    algorithm_version = Column(String(50), nullable=True)
+    result = Column(JSON)
+    algorithm_version = Column(String(50))
+    status = Column(String, default="draft")
+    notes = Column(String)
 
     # Relationships
     patient = relationship("Patient", back_populates="assessments")
-    user = relationship("User", back_populates="assessments")
+    clinician = relationship("User", back_populates="assessments")

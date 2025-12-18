@@ -15,10 +15,10 @@ class AssessmentRepository(BaseRepository[Assessment]):
         *,
         assessment_type: AssessmentType,
         patient_id: Optional[int],
-        user_id: UUID,  # ✅ STRING (Supabase-compatible)
+        clinician_id: str | UUID,   # Updated field name
         input_data: dict,
         result: dict,
-        algorithm_version: str,
+        algorithm_version: Optional[str] = None,
     ) -> Assessment:
         """
         Create a new assessment record.
@@ -26,7 +26,7 @@ class AssessmentRepository(BaseRepository[Assessment]):
         Args:
             assessment_type: The type of assessment (e.g., ASCVD_RISK)
             patient_id: ID of the patient (optional)
-            user_id: Supabase user ID (UUID string)
+            clinician_id: Supabase user ID / clinician performing the assessment
             input_data: Raw input data used for the assessment
             result: Computed result/output of the assessment
             algorithm_version: Version of the algorithm/model used
@@ -35,9 +35,9 @@ class AssessmentRepository(BaseRepository[Assessment]):
             The persisted Assessment instance
         """
         assessment = Assessment(
-            type=assessment_type.value,   # DB column
+            type=assessment_type.value,
             patient_id=patient_id,
-            user_id=user_id,              # ✅ FIXED
+            clinician_id=clinician_id,   # Updated
             input_data=input_data,
             result=result,
             algorithm_version=algorithm_version,

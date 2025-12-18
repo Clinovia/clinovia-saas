@@ -1,4 +1,3 @@
-# app/services/assessment_pipeline.py
 from typing import Type
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -7,10 +6,11 @@ from app.db.repositories.assessment_repository import AssessmentRepository
 from app.db.models.assessments import AssessmentType
 from app.services.alzheimer.cache import cache_result
 
+
 def run_assessment_pipeline(
     input_schema: BaseModel,
     db: Session,
-    user_id: UUID,
+    user_id: int,
     model_function,
     assessment_type: AssessmentType,
     model_name: str,
@@ -22,19 +22,6 @@ def run_assessment_pipeline(
     - Runs prediction using the provided model_function
     - Persists the assessment to the database
     - Returns typed Pydantic output
-
-    Args:
-        input_schema (BaseModel): validated Pydantic input model
-        db (Session): SQLAlchemy session
-        user_id (UUID): current clinician ID
-        model_function (callable): function that accepts input_schema and returns a Pydantic output
-        assessment_type (AssessmentType): enum for the type of assessment
-        model_name (str): model identifier string
-        model_version (str): version of the model (default: "1.0.0")
-        use_cache (bool): whether to wrap the model function with cache_result (default: True)
-
-    Returns:
-        BaseModel: Pydantic output schema returned by model_function
     """
     # Wrap model_function with caching if requested
     if use_cache:
@@ -45,12 +32,14 @@ def run_assessment_pipeline(
 
     # Persist assessment to DB
     AssessmentRepository(db).create(
+        specialty=model_name.split("_")[0],  # e.g., 'alzheimer' or 'cardiology'
         assessment_type=assessment_type,
         patient_id=getattr(input_schema, "patient_id", None),
-        user_id=user_id,
-        input_data=input_schema.model_dump(mode='json'),  # ✅ Added mode='json'
-        result=prediction_schema.model_dump(mode='json'),  # ✅ Added mode='json'
+        clinician_id=user_id,  # updated field
+        input_data=input_schema.model_dump(mode="json"),
+        result=prediction_schema.model_dump(mode="json"),
         algorithm_version=model_version,
+        status="completed",
     )
 
     return prediction_schema
