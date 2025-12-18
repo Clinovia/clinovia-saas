@@ -25,7 +25,6 @@ from app.api.routes import (
     cardiology,
     health,
     history,
-    payments,
     users,
 )
 
@@ -57,7 +56,6 @@ app.include_router(alzheimer.router, prefix=f"{settings.API_V1_STR}/alzheimer", 
 app.include_router(cardiology.router, prefix=f"{settings.API_V1_STR}/cardiology", tags=["cardiology"])
 app.include_router(health.router, prefix=f"{settings.API_V1_STR}/health", tags=["health"])
 app.include_router(history.router, prefix=f"{settings.API_V1_STR}/history", tags=["history"])
-app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["payments"])
 app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 
 # --- Startup event ---
