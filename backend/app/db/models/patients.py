@@ -1,9 +1,10 @@
 from datetime import datetime, date
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Date, DateTime, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 
 from app.db.base import BaseModel
 
@@ -21,16 +22,17 @@ class Patient(BaseModel):
     __tablename__ = "patients"
 
     # ---- Primary key ----
-    id: Mapped[int] = mapped_column(
-        Integer,
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True),
         primary_key=True,
+        default=uuid.uuid4,
         index=True,
     )
 
     # ---- Ownership ----
     clinician_id: Mapped[str] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="RESTRICT"),
+        ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
     )
@@ -71,7 +73,4 @@ class Patient(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<Patient id={self.id} "
-            f"clinician_id={self.clinician_id}>"
-        )
+        return f"<Patient id={self.id} clinician_id={self.clinician_id}>"

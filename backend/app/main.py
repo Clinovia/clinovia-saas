@@ -22,8 +22,6 @@ from app.core.middleware.error_handling_middleware import ErrorHandlingMiddlewar
 from app.api.routes import (
     admin,
     alzheimer,
-    analytics,
-    api_keys,
     cardiology,
     health,
     history,
@@ -56,7 +54,6 @@ app.add_middleware(ErrorHandlingMiddleware)
 # --- Router registration ---
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(alzheimer.router, prefix=f"{settings.API_V1_STR}/alzheimer", tags=["alzheimer"])
-app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
 app.include_router(cardiology.router, prefix=f"{settings.API_V1_STR}/cardiology", tags=["cardiology"])
 app.include_router(health.router, prefix=f"{settings.API_V1_STR}/health", tags=["health"])
 app.include_router(history.router, prefix=f"{settings.API_V1_STR}/history", tags=["history"])

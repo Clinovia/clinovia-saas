@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import Boolean, String, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,25 +19,31 @@ class User(BaseModel):
 
     __tablename__ = "users"
 
+    # ---- Primary Key ----
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
         index=True,
     )
 
+    # ---- Basic Info ----
     email: Mapped[str] = mapped_column(
         String,
         unique=True,
         index=True,
         nullable=False,
     )
+    full_name: Mapped[str] = mapped_column(String, nullable=True)
+    role: Mapped[str] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # ---- Timestamps ----
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
-
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -46,10 +52,9 @@ class User(BaseModel):
     )
 
     # ---- Relationships ----
-
     patients: Mapped[List["Patient"]] = relationship(
         "Patient",
-        back_populates="created_by",
+        back_populates="clinician",
         passive_deletes=True,
     )
 

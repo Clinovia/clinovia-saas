@@ -1,15 +1,19 @@
-# backend/app/db/repositories/user_repository.py
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from uuid import UUID
-from app.db.repositories.base_repository import BaseRepository
 from app.db.models.users import User
 
 
-class UserRepository(BaseRepository[User]):
+class UserRepository:
     def __init__(self, db: AsyncSession):
-        super().__init__(User, db)
+        self.db = db
+        self.model = User
+
+    # --- Fetch user by ID ---
+    async def get(self, user_id: UUID) -> Optional[User]:
+        result = await self.db.execute(select(self.model).where(self.model.id == user_id))
+        return result.scalars().first()
 
     # --- Fetch user by email ---
     async def get_by_email(self, email: str) -> Optional[User]:
@@ -18,7 +22,7 @@ class UserRepository(BaseRepository[User]):
 
     # --- Count active users ---
     async def count_active(self) -> int:
-        result = await self.db.execute(select(self.model).where(self.model.is_active == True))
+        result = await self.db.execute(select(self.model).where(self.model.is_active.is_(True)))
         return result.scalars().count()
 
     # --- Disable user ---
@@ -33,4 +37,9 @@ class UserRepository(BaseRepository[User]):
     # --- List all users ---
     async def list_all(self) -> List[User]:
         result = await self.db.execute(select(self.model))
+        return result.scalars().all()
+
+    # --- Optional: List by role ---
+    async def list_by_role(self, role: str) -> List[User]:
+        result = await self.db.execute(select(self.model).where(self.model.role == role))
         return result.scalars().all()
