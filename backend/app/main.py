@@ -24,7 +24,6 @@ from app.api.routes import (
     alzheimer,
     analytics,
     api_keys,
-    billing,
     cardiology,
     health,
     history,
@@ -58,8 +57,6 @@ app.add_middleware(ErrorHandlingMiddleware)
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(alzheimer.router, prefix=f"{settings.API_V1_STR}/alzheimer", tags=["alzheimer"])
 app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
-app.include_router(api_keys.router, prefix=f"{settings.API_V1_STR}/api-keys", tags=["api_keys"])
-app.include_router(billing.router, prefix=f"{settings.API_V1_STR}/billing", tags=["billing"])
 app.include_router(cardiology.router, prefix=f"{settings.API_V1_STR}/cardiology", tags=["cardiology"])
 app.include_router(health.router, prefix=f"{settings.API_V1_STR}/health", tags=["health"])
 app.include_router(history.router, prefix=f"{settings.API_V1_STR}/history", tags=["history"])
