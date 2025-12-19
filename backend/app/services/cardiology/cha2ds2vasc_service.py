@@ -10,7 +10,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def run_cha2ds2vasc_prediction(
     input_schema: Union[CHA2DS2VAScInput, Dict[str, Any]],
     db: Session,
-    user_id: UUID,
+    clinician_id: UUID,
 ) -> CHA2DS2VAScOutput:
     """
     Full stroke risk assessment pipeline.
@@ -18,7 +18,7 @@ def run_cha2ds2vasc_prediction(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        user_id=user_id,
+        clinician_id=clinician_id, 
         model_function=calculate_cha2ds2vasc,
         assessment_type=AssessmentType.CARDIOLOGY_CHA2DS2VASC,
         model_name="cha2ds2vasc-v1",

@@ -6,7 +6,7 @@ from uuid import UUID
 # ----------------------------
 # Type alias for Patient ID
 # ----------------------------
-PatientID = int
+PatientID = UUID
 
 # ----------------------------
 # Shared patient fields
@@ -25,7 +25,7 @@ class PatientBase(BaseModel):
 class PatientCreate(PatientBase):
     """
     Schema for creating a new patient.
-    user_id is automatically set from the authenticated clinician.
+    clinician_id is inferred from the authenticated user.
     """
     pass
 
@@ -46,19 +46,32 @@ class PatientUpdate(BaseModel):
 # ----------------------------
 class PatientResponse(PatientBase):
     id: PatientID
-    user_id: UUID  # ✅ Clinician who owns this patient
+    clinician_id: UUID
     created_at: datetime
-    
+
     class Config:
-        from_attributes = True  # ✅ Pydantic v2 (was orm_mode in v1)
+        from_attributes = True  # Pydantic v2
+
+# ----------------------------
+# Minimal assessment info for history
+# ----------------------------
+class AssessmentSummary(BaseModel):
+    """Lightweight assessment data for patient history"""
+    id: UUID
+    type: str  # AssessmentType enum value
+    result: dict
+    algorithm_version: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 # ----------------------------
 # Schema with assessment history
 # ----------------------------
 class PatientWithAssessments(PatientResponse):
-    """Patient with their assessment history"""
-    assessments: List["AssessmentSummary"] = []  # Forward reference
-    
+    assessments: List[AssessmentSummary] = []
+
     class Config:
         from_attributes = True
 
@@ -68,23 +81,9 @@ class PatientWithAssessments(PatientResponse):
 class PatientList(BaseModel):
     patients: List[PatientResponse]
     total: int
-    
+
     class Config:
         from_attributes = True
 
-# ----------------------------
-# Minimal assessment info for history
-# ----------------------------
-class AssessmentSummary(BaseModel):
-    """Lightweight assessment data for patient history"""
-    id: int
-    type: str  # AssessmentType enum value
-    result: dict  # JSON result data
-    algorithm_version: Optional[str] = None
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-# Update forward references
+# Resolve forward references
 PatientWithAssessments.model_rebuild()

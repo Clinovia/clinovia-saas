@@ -8,7 +8,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def predict_prog_2yr_basic(
     input_schema: AlzheimerPrognosis2yrBasicInput,
     db: Session,
-    user_id: UUID,
+    clinician_id: UUID,
 ) -> AlzheimerPrognosis2yrBasicOutput:
     """
     Pipeline for predicting 2-year progression (basic model) and persisting assessment.
@@ -16,7 +16,7 @@ def predict_prog_2yr_basic(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        user_id=user_id,
+        clinician_id=clinician_id, 
         model_function=predict_prognosis_2yr_basic,
         assessment_type=AssessmentType.ALZHEIMER_PROGNOSIS_2YR_BASIC,
         model_name="prognosis-2yr-basic-v1",

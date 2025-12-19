@@ -11,7 +11,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def predict_diag_extended(
     input_schema: AlzheimerDiagnosisExtendedInput,
     db: Session,
-    user_id: UUID,
+    clinician_id: UUID,
 ) -> AlzheimerDiagnosisExtendedOutput:
     """
     Full pipeline for predicting cognitive status using the extended Alzheimer model.
@@ -19,7 +19,7 @@ def predict_diag_extended(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        user_id=user_id,
+        clinician_id=clinician_id, 
         model_function=predict_cognitive_status_extended,
         assessment_type=AssessmentType.ALZHEIMER_DIAGNOSIS_EXTENDED,
         model_name="alz-diagnosis-extended-v1",

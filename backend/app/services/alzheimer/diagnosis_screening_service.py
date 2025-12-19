@@ -8,7 +8,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def predict_diag_screen(
     input_schema: AlzheimerDiagnosisInput,
     db: Session,
-    user_id: UUID,
+    clinician_id: UUID,
 ) -> AlzheimerDiagnosisOutput:
     """
     Pipeline for predicting cognitive status (screening model) and persisting assessment.
@@ -16,7 +16,7 @@ def predict_diag_screen(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        user_id=user_id,
+        clinician_id=clinician_id, 
         model_function=predict_cognitive_status,
         assessment_type=AssessmentType.ALZHEIMER_DIAGNOSIS_SCREENING,
         model_name="alz-diagnosis-screening-v1",

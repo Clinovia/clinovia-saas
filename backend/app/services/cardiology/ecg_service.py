@@ -10,7 +10,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def run_ecg_interpretation(
     input_schema: Union[ECGInterpretationInput, Dict[str, Any]],
     db: Session,
-    user_id: UUID,
+    clinician_id: UUID,
 ) -> ECGInterpretationOutput:
     """
     Full ECG interpretation pipeline using generic assessment pipeline.
@@ -18,7 +18,7 @@ def run_ecg_interpretation(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        user_id=user_id,
+        clinician_id=clinician_id, 
         model_function=interpret_ecg,
         assessment_type=AssessmentType.CARDIOLOGY_ECG,
         model_name="ecg-interpretation-v1",
