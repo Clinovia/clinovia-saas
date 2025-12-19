@@ -8,7 +8,7 @@ from app.services.assessment_pipeline import run_assessment_pipeline
 def assess_alzheimer_risk(
     input_schema: AlzheimerRiskScreenerInput,
     db: Session,
-    user_id: UUID,
+    clinician_id: UUID,  # rename user_id → clinician_id
 ) -> AlzheimerRiskScreenerOutput:
     """
     Pipeline for calculating Alzheimer's risk score and persisting assessment.
@@ -16,7 +16,7 @@ def assess_alzheimer_risk(
     return run_assessment_pipeline(
         input_schema=input_schema,
         db=db,
-        user_id=user_id,
+        clinician_id=clinician_id,  # pass clinician_id
         model_function=calculate_risk_score,
         assessment_type=AssessmentType.ALZHEIMER_RISK,
         model_name="alz-risk-screener-v1",

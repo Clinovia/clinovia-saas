@@ -42,3 +42,4 @@ requests==2.31.0
 httpx>=0.24,<0.26
 python-json-logger
 email-validator
+authlib==1.6.6
