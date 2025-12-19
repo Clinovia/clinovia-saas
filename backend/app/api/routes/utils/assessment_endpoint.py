@@ -3,14 +3,17 @@ Generic assessment endpoint factory.
 Creates standardized REST endpoints for clinical assessments
 WITHOUT requiring patient_id.
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Type, Callable
+
 from app.api.deps import get_current_user, get_db
 from app.db.models.users import User
 from app.db.models.assessments import AssessmentType
 from app.db.repositories.assessment_repository import AssessmentRepository
 from app.schemas.base import AssessmentInputSchema, AssessmentOutputSchema
+
 
 def create_assessment_endpoint(
     *,
@@ -20,22 +23,27 @@ def create_assessment_endpoint(
     service_function: Callable,
     assessment_type: AssessmentType,
     router: APIRouter,
-    additional_dependencies: list = None,
 ):
     """
-    Generic endpoint generator for clinical assessments WITHOUT patient_id.
-    
-    Functionality:
+    Generic endpoint generator for clinician-owned assessments.
+
+    Characteristics
     ---------------------------
+    ✔ Authenticated clinician required
     ✔ No patient_id required
     ✔ No patient lookup
-    ✔ No owner/clinician authorization check
-    ✔ Runs assessment service function
-    ✔ Persists results with patient_id=None
-    ✔ Returns structured output
+    ✔ Runs assessment service
+    ✔ Persists assessment with:
+        - clinician_id = current_user.id
+        - patient_id = None
+    ✔ Returns structured response
     """
 
-    @router.post(path, response_model=output_schema, status_code=status.HTTP_200_OK)
+    @router.post(
+        path,
+        response_model=output_schema,
+        status_code=status.HTTP_200_OK,
+    )
     async def assessment_endpoint(
         input_data: input_schema,
         db: Session = Depends(get_db),
@@ -43,34 +51,34 @@ def create_assessment_endpoint(
     ):
         try:
             # ================================================================
-            # 1. Execute Assessment Service
+            # 1. Run Assessment Service
             # ================================================================
             result = service_function(
                 input_data=input_data,
-                current_user=current_user,
                 db=db,
+                clinician_id=current_user.id,
             )
 
             # ================================================================
-            # 2. Normalize response to dictionary with JSON serialization
+            # 2. Normalize result to JSON-safe dict
             # ================================================================
             if isinstance(result, dict):
                 result_dict = result
             elif hasattr(result, "model_dump"):
-                result_dict = result.model_dump(mode='json')  # ✅ Added mode='json'
+                result_dict = result.model_dump(mode="json")
             elif hasattr(result, "dict"):
                 result_dict = result.dict()
             else:
                 result_dict = dict(result)
 
             # ================================================================
-            # 3. Persist to Database (patient_id = None)
+            # 3. Persist Assessment (patient_id = None)
             # ================================================================
             AssessmentRepository(db).create(
                 assessment_type=assessment_type,
+                clinician_id=current_user.id,
                 patient_id=None,
-                user_id=current_user.id,
-                input_data=input_data.model_dump(mode='json') if hasattr(input_data, "model_dump") else dict(input_data),  # ✅ Added mode='json'
+                input_data=input_data.model_dump(mode="json"),
                 result=result_dict,
                 algorithm_version="v1.0",
             )
@@ -87,5 +95,8 @@ def create_assessment_endpoint(
                 detail=f"{assessment_type.value} assessment failed: {str(e)}",
             )
 
-    assessment_endpoint.__name__ = f"{assessment_type.value.replace('-', '_')}_endpoint"
+    assessment_endpoint.__name__ = (
+        f"{assessment_type.value.replace('-', '_')}_endpoint"
+    )
+
     return assessment_endpoint
