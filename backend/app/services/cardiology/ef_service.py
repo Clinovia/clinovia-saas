@@ -1,3 +1,4 @@
+# backend/app/services/cardiology/ef_service.py
 """
 Ejection Fraction Service
 Handles communication with the EF microservice and integrates
@@ -12,7 +13,7 @@ import httpx
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 
-from app.schemas.cardiology import EchonetEFOutput
+from app.schemas.cardiology import EchonetEFOutput, EchonetEFInput
 from app.db.models.assessments import AssessmentType
 from app.services.assessment_pipeline import run_assessment_pipeline
 
@@ -57,11 +58,7 @@ async def _call_ef_microservice(
             )
         }
 
-        headers = (
-            {"Authorization": f"Bearer {EF_SERVICE_TOKEN}"}
-            if EF_SERVICE_TOKEN
-            else {}
-        )
+        headers = {"Authorization": f"Bearer {EF_SERVICE_TOKEN}"} if EF_SERVICE_TOKEN else {}
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
@@ -72,20 +69,14 @@ async def _call_ef_microservice(
 
         if response.status_code == 200:
             return response.json()
-
         if response.status_code == 503:
             raise EFServiceError("EF service is warming up. Try again shortly.")
-
         if response.status_code in (400, 413):
             raise HTTPException(
                 status_code=response.status_code,
                 detail=response.json().get("detail", "Invalid EF request"),
             )
-
-        raise EFServiceError(
-            f"EF prediction failed: {response.json().get('detail', 'Unknown error')}"
-        )
-
+        raise EFServiceError(f"EF prediction failed: {response.json().get('detail', 'Unknown error')}")
     except httpx.TimeoutException:
         raise EFServiceError(f"EF prediction timed out after {timeout} seconds")
     except httpx.ConnectError:
@@ -114,7 +105,6 @@ async def run_ef_prediction(
     - persists assessment
     - returns EchonetEFOutput
     """
-
     raw = await _call_ef_microservice(video)
 
     # Normalize microservice output → schema fields
@@ -124,23 +114,24 @@ async def run_ef_prediction(
         "category": raw.get("severity"),
         "confidence": raw.get("confidence"),
         "warnings": raw.get("warnings"),
+        "model_name": raw.get("model_name", "echonet_3dcnn"),
+        "model_version": raw.get("model_version", "1.0.0"),
     }
 
+    # Create input schema instance
+    input_schema = EchonetEFInput(video_file=video.filename)
+
     return run_assessment_pipeline(
-        input_data={
-            "filename": video.filename,
-            "content_type": video.content_type,
-            "file_size_mb": raw.get("file_size_mb"),
-        },
+        input_schema=input_schema,
         db=db,
         clinician_id=clinician_id,
         patient_id=patient_id,
         model_function=lambda _: model_output,
         assessment_type=AssessmentType.CARDIOLOGY_EJECTION_FRACTION,
-        model_name=raw.get("model_name", "echonet_3dcnn"),
-        model_version=raw.get("model_version", "1.0.0"),
-        output_schema=EchonetEFOutput,
-        use_cache=False,  # file-based → no caching
+        specialty="cardiology",
+        model_name=model_output["model_name"],
+        model_version=model_output["model_version"],
+        use_cache=False,
     )
 
 
@@ -153,9 +144,7 @@ async def check_ef_service_health() -> Dict[str, Any]:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{EF_SERVICE_URL}/health")
-        if response.status_code == 200:
-            return response.json()
-        return {"status": "unhealthy", "error": f"Status {response.status_code}"}
+        return response.json() if response.status_code == 200 else {"status": "unhealthy", "error": f"Status {response.status_code}"}
     except Exception as e:
         return {"status": "unavailable", "error": str(e)}
 

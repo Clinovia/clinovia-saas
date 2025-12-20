@@ -70,8 +70,8 @@ def predict_prognosis_2yr_extended(
         # Load model + preprocessor
         # -----------------------------
         model, preprocessor = load_model(
-            model_key=MODEL_PATH,
-            preprocessor_key=PREPROCESSOR_PATH,
+            MODEL_PATH,
+            PREPROCESSOR_PATH,
         )
 
         # -----------------------------
