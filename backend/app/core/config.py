@@ -21,7 +21,7 @@ class Settings:
     TESTING: bool = os.getenv("TESTING", "False").lower() == "true"
 
     # --- OAuth2 (for Supabase JWTs) ---
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # can replace with Supabase token verification if needed
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
     # --- Supabase ---
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")

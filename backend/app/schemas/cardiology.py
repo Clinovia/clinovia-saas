@@ -124,40 +124,47 @@ class EchonetEFInput(BaseModel):
 class EchonetEFOutput(PredictionResponseBase):
     """
     Ejection Fraction Prediction Output
-    Inherits: prediction_id, status, timestamp, model_name, model_version, error
     """
     patient_id: Optional[Union[str, int]] = Field(
-        None, 
+        None,
         description="Patient identifier"
     )
-    ef_percent: Optional[float] = Field(
-        None, 
+
+    ef_percent: float = Field(
+        ...,
         description="Predicted ejection fraction percentage (0-100)",
         ge=0,
         le=100
     )
-    category: str = Field(
-        ..., 
-        description="Clinical category: Normal, Mild, Moderate, or Severe"
+
+    category: Literal[
+        "normal",
+        "mild",
+        "moderate",
+        "severe"
+    ] = Field(
+        ...,
+        description="Clinical EF category"
     )
+
     confidence: Optional[float] = Field(
-        None, 
+        None,
         description="Model confidence score (0-1)",
         ge=0,
         le=1
     )
-    # Override default model name
+
     model_name: str = Field(
         default="echonet_3dcnn",
         description="Model identifier"
     )
+
     model_version: str = Field(
         default="1.0.0",
         description="Model version"
     )
-    # Optional warnings (like ECG)
+
     warnings: Optional[List[str]] = Field(
         None,
         description="Clinical warnings or notes"
     )
-    

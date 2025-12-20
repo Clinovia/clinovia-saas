@@ -7,7 +7,7 @@ from app.db.models.assessments import AssessmentType
 from app.services.assessment_pipeline import run_assessment_pipeline
 
 def run_bp_category_prediction(
-    input_schema: BPCategoryInput,
+    input_data: BPCategoryInput,
     db: Session,
     clinician_id: UUID,
 ) -> BPCategoryOutput:
@@ -15,7 +15,7 @@ def run_bp_category_prediction(
     Full blood pressure categorization pipeline.
     """
     return run_assessment_pipeline(
-        input_schema=input_schema,
+        input_data=input_data,
         db=db,
         clinician_id=clinician_id, 
         model_function=categorize_blood_pressure,

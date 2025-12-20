@@ -1,45 +1,50 @@
 """
 Ejection Fraction Service
-Handles communication with the EF microservice for predictions and health checks.
+Handles communication with the EF microservice and integrates
+with the standard assessment pipeline.
 """
-import os
-from typing import BinaryIO, Dict, Any
-from fastapi import UploadFile, HTTPException
-import httpx
 
-# -----------------------------
+import os
+from typing import Dict, Any, Optional
+from uuid import UUID
+
+import httpx
+from fastapi import UploadFile, HTTPException
+from sqlalchemy.orm import Session
+
+from app.schemas.cardiology import EchonetEFOutput
+from app.db.models.assessments import AssessmentType
+from app.services.assessment_pipeline import run_assessment_pipeline
+
+
+# ================================================================
 # Configuration
-# -----------------------------
-EF_SERVICE_URL = os.getenv("EF_SERVICE_URL", "http://localhost:8001")
+# ================================================================
+
+EF_SERVICE_URL = os.getenv("EF_SERVICE_URL", "http://localhost:8081")
 EF_SERVICE_TOKEN = os.getenv("EF_SERVICE_TOKEN", "")
 REQUEST_TIMEOUT = 120.0  # seconds
 
 
-# -----------------------------
+# ================================================================
 # Exceptions
-# -----------------------------
+# ================================================================
+
 class EFServiceError(Exception):
     """Custom exception for EF service errors."""
     pass
 
 
-# -----------------------------
-# Core Functions
-# -----------------------------
-async def predict_ejection_fraction(video_file: UploadFile, timeout: float = REQUEST_TIMEOUT) -> Dict[str, Any]:
+# ================================================================
+# Internal: Microservice Call
+# ================================================================
+
+async def _call_ef_microservice(
+    video_file: UploadFile,
+    timeout: float = REQUEST_TIMEOUT,
+) -> Dict[str, Any]:
     """
-    Predict ejection fraction from an echocardiogram video.
-
-    Args:
-        video_file: Uploaded video file.
-        timeout: Request timeout in seconds.
-
-    Returns:
-        dict: Prediction results including ef_value, severity, confidence, filename, file_size_mb, model_version.
-
-    Raises:
-        EFServiceError: For service errors or connection failures.
-        HTTPException: For request validation errors.
+    Calls the EF microservice and returns raw prediction output.
     """
     try:
         await video_file.seek(0)
@@ -48,25 +53,38 @@ async def predict_ejection_fraction(video_file: UploadFile, timeout: float = REQ
             "video": (
                 video_file.filename,
                 await video_file.read(),
-                video_file.content_type or "video/avi"
+                video_file.content_type or "video/avi",
             )
         }
 
-        headers = {"Authorization": f"Bearer {EF_SERVICE_TOKEN}"} if EF_SERVICE_TOKEN else {}
+        headers = (
+            {"Authorization": f"Bearer {EF_SERVICE_TOKEN}"}
+            if EF_SERVICE_TOKEN
+            else {}
+        )
 
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(f"{EF_SERVICE_URL}/ejection-fraction", files=files, headers=headers)
+            response = await client.post(
+                f"{EF_SERVICE_URL}/ejection-fraction",
+                files=files,
+                headers=headers,
+            )
 
         if response.status_code == 200:
             return response.json()
-        elif response.status_code == 503:
-            raise EFServiceError("EF service is starting up. Try again shortly.")
-        elif response.status_code == 413:
-            raise HTTPException(status_code=413, detail=response.json().get("detail", "File too large"))
-        elif response.status_code == 400:
-            raise HTTPException(status_code=400, detail=response.json().get("detail", "Invalid request"))
-        else:
-            raise EFServiceError(f"EF prediction failed: {response.json().get('detail', 'Unknown error')}")
+
+        if response.status_code == 503:
+            raise EFServiceError("EF service is warming up. Try again shortly.")
+
+        if response.status_code in (400, 413):
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=response.json().get("detail", "Invalid EF request"),
+            )
+
+        raise EFServiceError(
+            f"EF prediction failed: {response.json().get('detail', 'Unknown error')}"
+        )
 
     except httpx.TimeoutException:
         raise EFServiceError(f"EF prediction timed out after {timeout} seconds")
@@ -74,45 +92,92 @@ async def predict_ejection_fraction(video_file: UploadFile, timeout: float = REQ
         raise EFServiceError(f"Cannot connect to EF service at {EF_SERVICE_URL}")
     except httpx.HTTPError as e:
         raise EFServiceError(f"HTTP error communicating with EF service: {e}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise EFServiceError(f"Unexpected error during EF prediction: {e}")
     finally:
         await video_file.seek(0)
 
 
+# ================================================================
+# Public: Assessment Pipeline Entry
+# ================================================================
+
+async def run_ef_prediction(
+    *,
+    video: UploadFile,
+    db: Session,
+    clinician_id: UUID,
+    patient_id: Optional[str] = None,
+) -> EchonetEFOutput:
+    """
+    Full EF prediction pipeline:
+    - calls microservice
+    - normalizes output
+    - persists assessment
+    - returns EchonetEFOutput
+    """
+
+    raw = await _call_ef_microservice(video)
+
+    # Normalize microservice output → schema fields
+    model_output = {
+        "patient_id": patient_id,
+        "ef_percent": raw.get("ef_value"),
+        "category": raw.get("severity"),
+        "confidence": raw.get("confidence"),
+        "warnings": raw.get("warnings"),
+    }
+
+    return run_assessment_pipeline(
+        input_data={
+            "filename": video.filename,
+            "content_type": video.content_type,
+            "file_size_mb": raw.get("file_size_mb"),
+        },
+        db=db,
+        clinician_id=clinician_id,
+        patient_id=patient_id,
+        model_function=lambda _: model_output,
+        assessment_type=AssessmentType.CARDIOLOGY_EJECTION_FRACTION,
+        model_name=raw.get("model_name", "echonet_3dcnn"),
+        model_version=raw.get("model_version", "1.0.0"),
+        output_schema=EchonetEFOutput,
+        use_cache=False,  # file-based → no caching
+    )
+
+
+# ================================================================
+# Health & Metadata
+# ================================================================
+
 async def check_ef_service_health() -> Dict[str, Any]:
-    """Check if the EF microservice is healthy."""
+    """Check EF microservice health."""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{EF_SERVICE_URL}/health")
         if response.status_code == 200:
             return response.json()
-        return {"status": "unhealthy", "model_loaded": False, "error": f"Status {response.status_code}"}
-    except httpx.ConnectError:
-        return {"status": "unavailable", "model_loaded": False, "error": f"Cannot connect to {EF_SERVICE_URL}"}
+        return {"status": "unhealthy", "error": f"Status {response.status_code}"}
     except Exception as e:
-        return {"status": "error", "model_loaded": False, "error": str(e)}
+        return {"status": "unavailable", "error": str(e)}
 
 
 async def get_ef_model_info() -> Dict[str, Any]:
-    """Get EF model information from the microservice."""
+    """Retrieve EF model metadata."""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{EF_SERVICE_URL}/model-info")
         if response.status_code == 200:
             return response.json()
         raise EFServiceError(f"Failed to get model info: {response.status_code}")
-    except httpx.ConnectError:
-        raise EFServiceError(f"Cannot connect to EF service at {EF_SERVICE_URL}")
     except Exception as e:
         raise EFServiceError(f"Error getting model info: {e}")
 
 
-# -----------------------------
+# ================================================================
 # Legacy Support
-# -----------------------------
+# ================================================================
+
 async def calculate_ejection_fraction(video_file: UploadFile) -> Dict[str, Any]:
-    """Legacy function name maintained for backward compatibility."""
-    return await predict_ejection_fraction(video_file)
+    """
+    Legacy alias (do not use in new code).
+    """
+    return await _call_ef_microservice(video_file)

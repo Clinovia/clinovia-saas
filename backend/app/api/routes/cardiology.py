@@ -49,7 +49,7 @@ async def test_route():
 
 create_assessment_endpoint(
     path="/ascvd",
-    input_schema=ASCVDRiskInput,
+    input_data=ASCVDRiskInput,
     output_schema=ASCVDRiskOutput,
     service_function=ascvd_service.run_ascvd_prediction,
     assessment_type=AssessmentType.CARDIOLOGY_ASCVD,
@@ -58,7 +58,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/bp-category",
-    input_schema=BPCategoryInput,
+    input_data=BPCategoryInput,
     output_schema=BPCategoryOutput,
     service_function=bp_service.run_bp_category_prediction,
     assessment_type=AssessmentType.CARDIOLOGY_BP,
@@ -67,7 +67,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/cha2ds2vasc",
-    input_schema=CHA2DS2VAScInput,
+    input_data=CHA2DS2VAScInput,
     output_schema=CHA2DS2VAScOutput,
     service_function=cha2ds2vasc_service.run_cha2ds2vasc_prediction,
     assessment_type=AssessmentType.CARDIOLOGY_CHA2DS2VASC,
@@ -76,7 +76,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/ecg-interpreter",
-    input_schema=ECGInterpretationInput,
+    input_data=ECGInterpretationInput,
     output_schema=ECGInterpretationOutput,
     service_function=ecg_service.run_ecg_interpretation,
     assessment_type=AssessmentType.CARDIOLOGY_ECG,
@@ -88,7 +88,11 @@ create_assessment_endpoint(
 # 🫀 Ejection Fraction (async, optional patient_id)
 # ================================================================
 
-@router.post("/ejection-fraction", response_model=Dict[str, Any])
+@router.post(
+    "/ejection-fraction",
+    response_model=EchonetEFOutput,
+    summary="Predict ejection fraction from echocardiogram video",
+)
 async def predict_ejection_fraction(
     video: UploadFile = File(...),
     patient_id: str | None = None,
@@ -97,48 +101,21 @@ async def predict_ejection_fraction(
 ):
     """
     Analyze echocardiogram video and predict ejection fraction.
+    Optionally associates the result with a patient.
     """
     try:
-        result = await ef_service.predict_ejection_fraction(video)
-
-        if patient_id:
-            from app.db.repositories.cardiology_repository import CardiologyRepository
-
-            repo = CardiologyRepository(db)
-            assessment = repo.create_ef_assessment(
-                clinician_id=current_user.id,
-                patient_id=patient_id,
-                ef_value=result["ef_value"],
-                severity=result["severity"],
-                confidence=result.get("confidence"),
-                model_version=result.get("model_version"),
-                metadata={
-                    "filename": result.get("filename"),
-                    "file_size_mb": result.get("file_size_mb"),
-                },
-            )
-
-            result["assessment_id"] = assessment.id
-            result["saved_to_patient"] = True
-
-        return result
+        return await ef_service.run_ef_prediction(
+            video=video,
+            db=db,
+            clinician_id=current_user.id,
+            patient_id=patient_id,
+        )
 
     except ef_service.EFServiceError as e:
         raise HTTPException(status_code=503, detail=str(e))
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to process echocardiogram: {str(e)}",
         )
-
-
-@router.get("/ejection-fraction/health")
-async def check_ef_service():
-    return await ef_service.check_ef_service_health()
-
-
-@router.get("/ejection-fraction/model-info")
-async def get_ef_model_info(
-    current_user: User = Depends(get_current_user),
-):
-    return await ef_service.get_ef_model_info()
