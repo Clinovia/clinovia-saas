@@ -108,15 +108,15 @@ async def run_ef_prediction(
     raw = await _call_ef_microservice(video)
 
     # Normalize microservice output → schema fields
-    model_output = {
-        "patient_id": patient_id,
-        "ef_percent": raw.get("ef_value"),
-        "category": raw.get("severity"),
-        "confidence": raw.get("confidence"),
-        "warnings": raw.get("warnings"),
-        "model_name": raw.get("model_name", "echonet_3dcnn"),
-        "model_version": raw.get("model_version", "1.0.0"),
-    }
+    model_output = EchonetEFOutput(
+        patient_id=patient_id,
+        ef_percent=raw.get("ef_value"),
+        category=raw.get("severity"),
+        confidence=raw.get("confidence"),
+        warnings=raw.get("warnings"),
+        model_name=raw.get("model_name", "echonet_3dcnn"),
+        model_version=raw.get("model_version", "1.0.0"),
+    )
 
     # Create input schema instance
     input_schema = EchonetEFInput(video_file=video.filename)
