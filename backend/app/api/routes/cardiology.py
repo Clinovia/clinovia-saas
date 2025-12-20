@@ -49,7 +49,7 @@ async def test_route():
 
 create_assessment_endpoint(
     path="/ascvd",
-    input_data=ASCVDRiskInput,
+    input_schema=ASCVDRiskInput,
     output_schema=ASCVDRiskOutput,
     service_function=ascvd_service.run_ascvd_prediction,
     assessment_type=AssessmentType.CARDIOLOGY_ASCVD,
@@ -58,7 +58,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/bp-category",
-    input_data=BPCategoryInput,
+    input_schema=BPCategoryInput,
     output_schema=BPCategoryOutput,
     service_function=bp_service.run_bp_category_prediction,
     assessment_type=AssessmentType.CARDIOLOGY_BP,
@@ -67,7 +67,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/cha2ds2vasc",
-    input_data=CHA2DS2VAScInput,
+    input_schema=CHA2DS2VAScInput,
     output_schema=CHA2DS2VAScOutput,
     service_function=cha2ds2vasc_service.run_cha2ds2vasc_prediction,
     assessment_type=AssessmentType.CARDIOLOGY_CHA2DS2VASC,
@@ -76,7 +76,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/ecg-interpreter",
-    input_data=ECGInterpretationInput,
+    input_schema=ECGInterpretationInput,
     output_schema=ECGInterpretationOutput,
     service_function=ecg_service.run_ecg_interpretation,
     assessment_type=AssessmentType.CARDIOLOGY_ECG,
