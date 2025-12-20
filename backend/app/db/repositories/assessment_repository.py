@@ -1,6 +1,8 @@
-from typing import Optional
+# backend/app/db/repositories/assessment_repository.py
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from uuid import UUID
+
 from app.db.models.assessments import Assessment, AssessmentType
 
 
@@ -12,9 +14,10 @@ class AssessmentRepository:
     def create(
         self,
         *,
+        specialty: str,
         assessment_type: AssessmentType,
-        patient_id: Optional[UUID],
         clinician_id: UUID,
+        patient_id: Optional[UUID],
         input_data: dict,
         result: Optional[dict] = None,
         algorithm_version: Optional[str] = None,
@@ -24,23 +27,28 @@ class AssessmentRepository:
         """
         Create a new assessment record.
 
-        Args:
-            assessment_type: The type of assessment (AssessmentType enum)
-            patient_id: ID of the patient (optional)
-            clinician_id: Supabase user ID / clinician performing the assessment
-            input_data: Raw input data used for the assessment
-            result: Computed result/output of the assessment
-            algorithm_version: Version of the algorithm/model used
-            status: Assessment status (default "draft")
-            notes: Optional notes
+        Design
+        -------
+        - specialty is stored explicitly (e.g. "alzheimer", "cardiology")
+        - assessment_type stores ONLY the normalized enum value
+          (e.g. "ascvd", "diagnosis_basic")
 
-        Returns:
-            The persisted Assessment instance
+        Args:
+            specialty: Clinical specialty
+            assessment_type: AssessmentType enum
+            clinician_id: Clinician (user) ID
+            patient_id: Optional patient ID (nullable)
+            input_data: Raw input payload
+            result: Computed assessment result
+            algorithm_version: Algorithm/model version
+            status: Assessment status (default: draft)
+            notes: Optional clinician notes
         """
-        assessment = Assessment(
+        assessment = self.model(
+            specialty=specialty,
             assessment_type=assessment_type,
-            patient_id=patient_id,
             clinician_id=clinician_id,
+            patient_id=patient_id,
             input_data=input_data,
             result=result,
             algorithm_version=algorithm_version,
@@ -53,6 +61,45 @@ class AssessmentRepository:
         self.db.refresh(assessment)
         return assessment
 
+    # ------------------------------------------------------------------
+    # Queries
+    # ------------------------------------------------------------------
+
+    def get_by_id(self, assessment_id: UUID) -> Optional[Assessment]:
+        return (
+            self.db.query(self.model)
+            .filter(self.model.id == assessment_id)
+            .first()
+        )
+
+    def list_by_patient(
+        self,
+        patient_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Assessment]:
+        return (
+            self.db.query(self.model)
+            .filter(self.model.patient_id == patient_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def list_by_specialty(
+        self,
+        specialty: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Assessment]:
+        return (
+            self.db.query(self.model)
+            .filter(self.model.specialty == specialty)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
     def count_all(self) -> int:
         return self.db.query(self.model).count()
 
@@ -63,20 +110,9 @@ class AssessmentRepository:
             .count()
         )
 
-    def list_by_patient(
-        self, patient_id: UUID, skip: int = 0, limit: int = 100
-    ) -> list[Assessment]:
+    def count_by_specialty(self, specialty: str) -> int:
         return (
             self.db.query(self.model)
-            .filter(self.model.patient_id == patient_id)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-
-    def get_by_id(self, assessment_id: UUID) -> Optional[Assessment]:
-        return (
-            self.db.query(self.model)
-            .filter(self.model.id == assessment_id)
-            .first()
+            .filter(self.model.specialty == specialty)
+            .count()
         )

@@ -1,3 +1,4 @@
+# backend/app/api/routes/utils/assessment_endpoint.py
 """
 Generic assessment endpoint factory.
 Creates standardized REST endpoints for clinical assessments
@@ -21,6 +22,7 @@ def create_assessment_endpoint(
     input_schema: Type[AssessmentInputSchema],
     output_schema: Type[AssessmentOutputSchema],
     service_function: Callable,
+    specialty: str,
     assessment_type: AssessmentType,
     router: APIRouter,
 ):
@@ -54,7 +56,7 @@ def create_assessment_endpoint(
             # 1. Run Assessment Service
             # ================================================================
             result = service_function(
-                input_data=input_data,
+                input_schema=input_data,
                 db=db,
                 clinician_id=current_user.id,
             )
@@ -75,12 +77,14 @@ def create_assessment_endpoint(
             # 3. Persist Assessment (patient_id = None)
             # ================================================================
             AssessmentRepository(db).create(
+                specialty=specialty,
                 assessment_type=assessment_type,
                 clinician_id=current_user.id,
                 patient_id=None,
                 input_data=input_data.model_dump(mode="json"),
                 result=result_dict,
                 algorithm_version="v1.0",
+                status="completed",
             )
 
             return result
@@ -95,8 +99,6 @@ def create_assessment_endpoint(
                 detail=f"{assessment_type.value} assessment failed: {str(e)}",
             )
 
-    assessment_endpoint.__name__ = (
-        f"{assessment_type.value.replace('-', '_')}_endpoint"
-    )
+    assessment_endpoint.__name__ = f"{assessment_type.value.replace('-', '_')}_endpoint"
 
     return assessment_endpoint

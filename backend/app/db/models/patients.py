@@ -22,14 +22,6 @@ class Patient(BaseModel):
 
     __tablename__ = "patients"
 
-    # ---- Primary key ----
-    id: Mapped[str] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-        index=True,
-    )
-
     # ---- Ownership ----
     clinician_id: Mapped[str] = mapped_column(
         UUID(as_uuid=True),

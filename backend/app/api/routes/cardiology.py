@@ -23,6 +23,7 @@ from app.schemas.cardiology import (
     CHA2DS2VAScOutput,
     ECGInterpretationInput,
     ECGInterpretationOutput,
+    EchonetEFOutput,
 )
 from app.services.cardiology import (
     ascvd_service,
@@ -49,6 +50,7 @@ async def test_route():
 
 create_assessment_endpoint(
     path="/ascvd",
+    specialty="cardiology",
     input_schema=ASCVDRiskInput,
     output_schema=ASCVDRiskOutput,
     service_function=ascvd_service.run_ascvd_prediction,
@@ -58,6 +60,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/bp-category",
+    specialty="cardiology",
     input_schema=BPCategoryInput,
     output_schema=BPCategoryOutput,
     service_function=bp_service.run_bp_category_prediction,
@@ -67,6 +70,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/cha2ds2vasc",
+    specialty="cardiology",
     input_schema=CHA2DS2VAScInput,
     output_schema=CHA2DS2VAScOutput,
     service_function=cha2ds2vasc_service.run_cha2ds2vasc_prediction,
@@ -76,6 +80,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/ecg-interpreter",
+    specialty="cardiology",
     input_schema=ECGInterpretationInput,
     output_schema=ECGInterpretationOutput,
     service_function=ecg_service.run_ecg_interpretation,

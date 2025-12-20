@@ -22,6 +22,7 @@ def predict_diag_extended(
         clinician_id=clinician_id, 
         model_function=predict_cognitive_status_extended,
         assessment_type=AssessmentType.ALZHEIMER_DIAGNOSIS_EXTENDED,
+        specialty="alzheimer",
         model_name="alz-diagnosis-extended-v1",
         model_version="1.0.0",
         use_cache=True,

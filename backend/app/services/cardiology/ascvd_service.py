@@ -22,6 +22,7 @@ def run_ascvd_prediction(
         db=db,
         clinician_id=clinician_id,
         patient_id=patient_id,
+        specialty="cardiology",
         model_function=calculate_ascvd,
         assessment_type=AssessmentType.CARDIOLOGY_ASCVD,
         model_name="cardiology_ascvd",

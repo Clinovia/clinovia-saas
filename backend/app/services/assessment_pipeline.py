@@ -9,13 +9,15 @@ from app.services.alzheimer.cache import cache_result
 
 
 def run_assessment_pipeline(
+    *,
     input_schema: BaseModel,
     db: Session,
     clinician_id: UUID,
     model_function,
     assessment_type: AssessmentType,
+    specialty: str,                   # <-- now passed explicitly
     model_name: str,
-    patient_id: Optional[UUID] = None,  # <-- patient_id is optional
+    patient_id: Optional[UUID] = None,
     model_version: str = "1.0.0",
     use_cache: bool = True,
 ) -> BaseModel:
@@ -24,18 +26,19 @@ def run_assessment_pipeline(
     - Runs prediction using the provided model_function
     - Persists the assessment to the database
     - Returns typed Pydantic output
-    
+
     Args:
-        input_schema: Pydantic schema containing input data (may include patient_id)
+        input_schema: Pydantic schema containing input data
         db: SQLAlchemy session
         clinician_id: Clinician performing the assessment
         model_function: Function that generates the prediction
         assessment_type: Type of assessment (Enum)
-        model_name: Name of the model (used for specialty)
+        specialty: Clinical specialty for this assessment (e.g., "alzheimer", "cardiology")
+        model_name: Name of the model (used for logging/tracking)
         patient_id: Optional patient UUID
         model_version: Version of the algorithm/model
         use_cache: Whether to wrap the model function with caching
-    
+
     Returns:
         Pydantic schema of the prediction result
     """
@@ -51,9 +54,9 @@ def run_assessment_pipeline(
 
     # Persist assessment to DB
     AssessmentRepository(db).create(
-        specialty=model_name.split("_")[0],  # e.g., 'alzheimer' or 'cardiology'
+        specialty=specialty,                  # explicitly passed
         assessment_type=assessment_type,
-        patient_id=final_patient_id,  # can be None
+        patient_id=final_patient_id,
         clinician_id=clinician_id,
         input_data=input_schema.model_dump(mode="json"),
         result=prediction_schema.model_dump(mode="json"),

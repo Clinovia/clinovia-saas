@@ -19,6 +19,7 @@ def predict_diag_screen(
         clinician_id=clinician_id, 
         model_function=predict_cognitive_status,
         assessment_type=AssessmentType.ALZHEIMER_DIAGNOSIS_SCREENING,
+        specialty="alzheimer",
         model_name="alz-diagnosis-screening-v1",
         model_version="1.0.0",
         use_cache=True,

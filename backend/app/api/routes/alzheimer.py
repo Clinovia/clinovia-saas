@@ -46,7 +46,7 @@ from app.services.alzheimer.risk_screener_service import assess_alzheimer_risk
 
 from app.db.models.assessments import AssessmentType
 
-router = APIRouter(tags=["Alzheimer Assessments"])
+router = APIRouter(tags=["Alzheimer"])
 
 
 # ================================================================
@@ -55,6 +55,7 @@ router = APIRouter(tags=["Alzheimer Assessments"])
 
 create_assessment_endpoint(
     path="/diagnosis-screening",
+    specialty="alzheimer",
     input_schema=AlzheimerDiagnosisInput,
     output_schema=AlzheimerDiagnosisOutput,
     service_function=predict_diag_screen,
@@ -64,6 +65,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/diagnosis-basic",
+    specialty="alzheimer",
     input_schema=AlzheimerDiagnosisBasicInput,
     output_schema=AlzheimerDiagnosisBasicOutput,
     service_function=predict_diag_basic,
@@ -73,6 +75,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/diagnosis-extended",
+    specialty="alzheimer",
     input_schema=AlzheimerDiagnosisExtendedInput,
     output_schema=AlzheimerDiagnosisExtendedOutput,
     service_function=predict_diag_extended,
@@ -82,6 +85,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/prognosis-2yr-basic",
+    specialty="alzheimer",
     input_schema=AlzheimerPrognosis2yrBasicInput,
     output_schema=AlzheimerPrognosis2yrBasicOutput,
     service_function=predict_prog_2yr_basic,
@@ -91,6 +95,7 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/prognosis-2yr-extended",
+    specialty="alzheimer",
     input_schema=AlzheimerPrognosis2yrExtendedInput,
     output_schema=AlzheimerPrognosis2yrExtendedOutput,
     service_function=predict_prog_2yr_extended,
@@ -100,9 +105,10 @@ create_assessment_endpoint(
 
 create_assessment_endpoint(
     path="/risk-screener",
+    specialty="alzheimer",
     input_schema=AlzheimerRiskScreenerInput,
     output_schema=AlzheimerRiskScreenerOutput,
     service_function=assess_alzheimer_risk,
-    assessment_type=AssessmentType.ALZHEIMER_RISK,
+    assessment_type=AssessmentType.ALZHEIMER_RISK_SCREENER,
     router=router,
 )

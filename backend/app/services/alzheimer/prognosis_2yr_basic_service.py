@@ -19,6 +19,7 @@ def predict_prog_2yr_basic(
         clinician_id=clinician_id, 
         model_function=predict_prognosis_2yr_basic,
         assessment_type=AssessmentType.ALZHEIMER_PROGNOSIS_2YR_BASIC,
+        specialty="alzheimer",
         model_name="prognosis-2yr-basic-v1",
         model_version="1.0.0",
         use_cache=True,

@@ -59,11 +59,7 @@ class CardiologyAssessmentService:
     # Individual Assessments (pipeline-based)
     # ------------------------------------------------------------------
 
-    def run_ascvd(
-        self,
-        patient_id: Optional[UUID],
-        input_schema: ASCVDRiskInput,
-    ) -> dict:
+    def run_ascvd(self, patient_id: Optional[UUID], input_schema: ASCVDRiskInput) -> dict:
         self._get_patient_or_raise(patient_id)
 
         result = run_assessment_pipeline(
@@ -73,15 +69,12 @@ class CardiologyAssessmentService:
             patient_id=patient_id,
             model_function=self.ascvd.run_ascvd_prediction,
             assessment_type=AssessmentType.CARDIOLOGY_ASCVD,
-            model_name="cardiology_ascvd",
+            specialty="cardiology",
+            model_name="ascvd",
         )
         return result.model_dump(mode="json")
 
-    def run_cha2ds2vasc(
-        self,
-        patient_id: Optional[UUID],
-        input_schema: CHA2DS2VAScInput,
-    ) -> dict:
+    def run_cha2ds2vasc(self, patient_id: Optional[UUID], input_schema: CHA2DS2VAScInput) -> dict:
         self._get_patient_or_raise(patient_id)
 
         result = run_assessment_pipeline(
@@ -91,15 +84,12 @@ class CardiologyAssessmentService:
             patient_id=patient_id,
             model_function=self.cha2ds2vasc.run_cha2ds2vasc_prediction,
             assessment_type=AssessmentType.CARDIOLOGY_CHA2DS2VASC,
-            model_name="cardiology_cha2ds2vasc",
+            specialty="cardiology",
+            model_name="cha2ds2vasc",
         )
         return result.model_dump(mode="json")
 
-    def run_bp(
-        self,
-        patient_id: Optional[UUID],
-        input_schema: BPCategoryInput,
-    ) -> dict:
+    def run_bp(self, patient_id: Optional[UUID], input_schema: BPCategoryInput) -> dict:
         self._get_patient_or_raise(patient_id)
 
         result = run_assessment_pipeline(
@@ -109,15 +99,12 @@ class CardiologyAssessmentService:
             patient_id=patient_id,
             model_function=self.bp.run_bp_category_prediction,
             assessment_type=AssessmentType.CARDIOLOGY_BP,
-            model_name="cardiology_bp",
+            specialty="cardiology",
+            model_name="bp_category",
         )
         return result.model_dump(mode="json")
 
-    def run_ecg(
-        self,
-        patient_id: Optional[UUID],
-        input_schema: ECGInterpretationInput,
-    ) -> dict:
+    def run_ecg(self, patient_id: Optional[UUID], input_schema: ECGInterpretationInput) -> dict:
         self._get_patient_or_raise(patient_id)
 
         result = run_assessment_pipeline(
@@ -127,7 +114,8 @@ class CardiologyAssessmentService:
             patient_id=patient_id,
             model_function=self.ecg.run_ecg_interpretation,
             assessment_type=AssessmentType.CARDIOLOGY_ECG,
-            model_name="cardiology_ecg",
+            specialty="cardiology",
+            model_name="ecg_interpretation",
         )
         return result.model_dump(mode="json")
 
@@ -135,21 +123,11 @@ class CardiologyAssessmentService:
     # Ejection Fraction (INTENTIONALLY NOT pipeline-based)
     # ------------------------------------------------------------------
 
-    async def run_ef(
-        self,
-        patient_id: Optional[UUID],
-        input_schema: EchonetEFInput,
-    ) -> dict:
-        """
-        EF uses an external microservice and does NOT go through
-        run_assessment_pipeline by design.
-        """
+    async def run_ef(self, patient_id: Optional[UUID], input_schema: EchonetEFInput) -> dict:
+        """EF uses an external microservice and does NOT go through the pipeline."""
         self._get_patient_or_raise(patient_id)
 
-        # Call EF microservice
-        result_dict = await self.ef.predict_ejection_fraction(
-            video_file=input_schema.video_file
-        )
+        result_dict = await self.ef.predict_ejection_fraction(video_file=input_schema.video_file)
 
         # Persist via standard AssessmentRepository
         AssessmentRepository(self.db).create(
@@ -162,11 +140,7 @@ class CardiologyAssessmentService:
             status="completed",
         )
 
-        # Inject patient_id into response (API-level concern)
-        return {
-            **result_dict,
-            "patient_id": patient_id,
-        }
+        return {**result_dict, "patient_id": patient_id}
 
     # ------------------------------------------------------------------
     # Combined Assessment

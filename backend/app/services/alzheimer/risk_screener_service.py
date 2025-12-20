@@ -18,7 +18,8 @@ def assess_alzheimer_risk(
         db=db,
         clinician_id=clinician_id,  # pass clinician_id
         model_function=calculate_risk_score,
-        assessment_type=AssessmentType.ALZHEIMER_RISK,
+        assessment_type=AssessmentType.ALZHEIMER_RISK_SCREENER,
+        specialty="alzheimer",
         model_name="alz-risk-screener-v1",
         model_version="1.0.0",
         use_cache=True,
