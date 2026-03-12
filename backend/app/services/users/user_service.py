@@ -1,88 +1,66 @@
-# backend/app/services/users/user_service.py
-from uuid import UUID
-from typing import Optional, List
-from sqlalchemy.orm import Session
-from app.db.repositories.user_repository import UserRepository
-from app.db.models.users import User
-from app.schemas.users import UserCreate, UserRead, UserUpdate
+"""
+User service (Supabase-only)
+
+Responsibilities:
+- Interpret Supabase-authenticated user identity
+- Provide normalized user info to the application
+- NO local persistence
+- NO CRUD
+- NO SQLAlchemy
+
+Supabase is the source of truth for users.
+"""
+
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
+
+
+@dataclass
+class UserContext:
+    """
+    Normalized user representation derived from Supabase JWT.
+    """
+    id: str
+    email: Optional[str] = None
+    role: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
 
 class UserService:
-    """Service layer for user CRUD operations (Supabase handles auth)."""
+    """
+    Supabase-only user service.
 
-    def __init__(self, db: Session):
-        self.db = db
-        self.repo = UserRepository(db)
+    This service does NOT:
+    - create users
+    - update users
+    - delete users
+    - store users locally
 
-    def _to_response(self, user: User) -> UserRead:
-        """Convert ORM User to UserRead schema."""
-        return UserRead.model_validate(user)
+    Those responsibilities belong to Supabase.
+    """
 
-    # -------------------
-    # CRUD Operations
-    # -------------------
-
-    async def create(self, user_data: UserCreate) -> UserRead:
-        """Create a new user (metadata only)."""
-        existing_user = self.repo.get_by_email(user_data.email)
-        if existing_user:
-            raise ValueError("Email is already in use")
-
-        new_user = User(
-            email=user_data.email,
-            full_name=user_data.full_name,
-            is_active=True,
-            is_superuser=False
+    @staticmethod
+    def from_jwt_payload(payload: Dict[str, Any]) -> UserContext:
+        """
+        Build a UserContext from a verified Supabase JWT payload.
+        """
+        return UserContext(
+            id=payload.get("sub"),
+            email=payload.get("email"),
+            role=payload.get("role") or payload.get("app_metadata", {}).get("role"),
+            metadata=payload.get("user_metadata"),
         )
 
-        user = self.repo.create(new_user)
-        return self._to_response(user)
+    @staticmethod
+    def get_user_id(user: UserContext) -> str:
+        return user.id
 
-    async def create_if_not_exists(self, uid: str, email: str, full_name: Optional[str] = None) -> UserRead:
+    @staticmethod
+    def is_admin(user: UserContext) -> bool:
         """
-        Create a new user if they don't exist (used for new Supabase signups).
-        Returns existing user if already present.
+        Admin check placeholder.
+
+        Future:
+        - Enforce via Supabase app_metadata / custom claims
         """
-        user = self.repo.get(uid)
-        if not user:
-            user = User(
-                id=uid,
-                email=email,
-                full_name=full_name,
-                is_active=True,
-                is_superuser=False
-            )
-            self.repo.create(user)
-        return self._to_response(user)
-
-    async def get(self, user_id: UUID) -> Optional[UserRead]:
-        user = self.repo.get(user_id)
-        return self._to_response(user) if user else None
-
-    async def get_by_email(self, email: str) -> Optional[UserRead]:
-        user = self.repo.get_by_email(email)
-        return self._to_response(user) if user else None
-
-    async def get_multi(self, skip: int = 0, limit: int = 100) -> List[UserRead]:
-        users = self.repo.list_all()[skip: skip + limit]
-        return [self._to_response(u) for u in users]
-
-    async def update(self, user_id: UUID, user_update: UserUpdate) -> UserRead:
-        user = self.repo.get(user_id)
-        if not user:
-            raise ValueError("User not found")
-
-        update_data = user_update.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            if hasattr(user, field):
-                setattr(user, field, value)
-
-        updated_user = self.repo.update(user)
-        return self._to_response(updated_user)
-
-    async def delete(self, user_id: UUID) -> None:
-        """Soft-delete / deactivate a user."""
-        user = self.repo.get(user_id)
-        if not user:
-            raise ValueError("User not found")
-        user.is_active = False
-        self.repo.update(user)
+        return user.role == "admin"

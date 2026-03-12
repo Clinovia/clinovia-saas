@@ -1,19 +1,22 @@
-# backend/app/clinical/alzheimer/ml_models/diagnosis_basic.py
 """
 Basic Alzheimer's diagnosis classifier (CN, MCI, AD)
 ----------------------------------------------------
 Uses pre-trained model with standard scaler.
-Refactored for consistent schema and preprocessing.
+Aligned with AlzheimerDiagnosisBasicInput schema.
+
+This module performs prediction and self-registers
+its assessment configuration in the central registry.
 """
 
-from typing import Dict
-from uuid import uuid4
 import numpy as np
 
 from app.schemas.alzheimer.diagnosis_basic import (
     AlzheimerDiagnosisBasicInput,
     AlzheimerDiagnosisBasicOutput,
 )
+
+from app.services.registry import register_assessment
+
 from app.clinical.utils import (
     fill_defaults,
     preprocess_for_prediction,
@@ -22,82 +25,91 @@ from app.clinical.utils import (
 )
 
 # -----------------------------
+# Registry Metadata
+# -----------------------------
+
+ASSESSMENT_TYPE = "ALZHEIMER_DIAGNOSIS_BASIC"
+SPECIALTY = "alzheimer"
+
+MODEL_NAME = "Alzheimer_diagnosis_with_basic_features"
+MODEL_VERSION = "1.0.0"
+
+# -----------------------------
 # Constants
 # -----------------------------
 
 CLASS_NAMES = ["CN", "MCI", "AD"]
 
-# Feature order MUST match model training order
 BASIC_FEATURE_ORDER = [
     "AGE",
-    "MMSE_bl",
-    "CDRSB_bl",
-    "FAQ_bl",
+    "MMSE",
+    "FAQ",
     "PTEDUCAT",
+    "RAVLT_immediate",
+    "MOCA",
+    "ADAS13",
     "PTGENDER",
     "APOE4",
-    "RAVLT_immediate_bl",
-    "MOCA_bl",
-    "ADAS13_bl",
 ]
 
-# Numeric features (will be scaled)
 NUMERIC_COLUMNS = [
     "AGE",
-    "MMSE_bl",
-    "CDRSB_bl",
-    "FAQ_bl",
+    "MMSE",
+    "FAQ",
     "PTEDUCAT",
-    "RAVLT_immediate_bl",
-    "MOCA_bl",
-    "ADAS13_bl",
+    "RAVLT_immediate",
+    "MOCA",
+    "ADAS13",
 ]
 
-# Categorical features (will be encoded but not scaled)
-CATEGORICAL_COLUMNS = ["PTGENDER", "APOE4"]
+CATEGORICAL_COLUMNS = [
+    "PTGENDER",
+    "APOE4",
+]
 
-MODEL_PATH = "alzheimer/diagnosis/basic/v1/model.pkl"
-PREPROCESSOR_PATH = "alzheimer/diagnosis/basic/v1/scaler.pkl"
+MODEL_PATH = "alzheimer/diagnosis_basic/v1/diagnosis_basic_model.pkl"
+PREPROCESSOR_PATH = "alzheimer/diagnosis_basic/v1/diagnosis_basic_scaler.pkl"
 
-# Default values for missing numeric fields
+# -----------------------------
+# Fallback Defaults
+# -----------------------------
+
 NUMERIC_DEFAULTS = {
     "AGE": 75.0,
-    "MMSE_bl": 28.0,
-    "CDRSB_bl": 0.5,
-    "FAQ_bl": 0.0,
+    "MMSE": 28.0,
+    "FAQ": 0.0,
     "PTEDUCAT": 16.0,
-    "RAVLT_immediate_bl": 40.0,
-    "MOCA_bl": 26.0,
-    "ADAS13_bl": 10.5,
+    "RAVLT_immediate": 40.0,
+    "MOCA": 26.0,
+    "ADAS13": 10.5,
 }
 
-# Default values for missing categorical fields
 CATEGORICAL_DEFAULTS = {
     "PTGENDER": "female",
     "APOE4": -1,
 }
 
 
+# -----------------------------
+# Prediction Function
+# -----------------------------
+
 def predict_cognitive_status_basic(
     input_schema: AlzheimerDiagnosisBasicInput,
 ) -> AlzheimerDiagnosisBasicOutput:
     """
-    Public API entrypoint for Alzheimer's basic classifier.
-
-    Predicts cognitive status (CN, MCI, AD) from cognitive assessment data.
+    Predict cognitive status (CN, MCI, AD).
     """
-    try:
-        input_data = input_schema.model_dump()
-        print("DEBUG: input_data =", input_data)
 
-        # Load model and preprocessor
+    input_data = input_schema.model_dump()
+
+    try:
+
         model, preprocessor = load_model(
             MODEL_PATH,
             PREPROCESSOR_PATH,
         )
-        print("DEBUG: model loaded?", model is not None, "preprocessor loaded?", preprocessor is not None)
 
-        # Preprocess using the shared utility
         X_scaled = preprocess_for_prediction(
             input_data=input_data,
             numeric_defaults=NUMERIC_DEFAULTS,
@@ -107,22 +119,25 @@ def predict_cognitive_status_basic(
             categorical_columns=CATEGORICAL_COLUMNS,
             scaler=preprocessor,
         )
-        print("DEBUG: X_scaled shape =", X_scaled.shape)
-        print("DEBUG: X_scaled =", X_scaled)
 
-        # Make prediction
         y_proba = model.predict_proba(X_scaled)[0]
-        print("DEBUG: raw model probabilities =", y_proba)
-
         y_pred_idx = int(np.argmax(y_proba))
-        predicted_class = CLASS_NAMES[y_pred_idx]
-        print("DEBUG: predicted_class =", predicted_class)
 
-        probabilities = {cls: float(prob) for cls, prob in zip(CLASS_NAMES, y_proba)}
+        predicted_class = CLASS_NAMES[y_pred_idx]
+
+        probabilities = {
+            cls: float(prob)
+            for cls, prob in zip(CLASS_NAMES, y_proba)
+        }
+
         confidence = float(np.max(y_proba))
 
-        # Log usage - get actual values used (after defaults applied)
-        filled_data = fill_defaults(input_data, NUMERIC_DEFAULTS, CATEGORICAL_DEFAULTS)
+        filled_data = fill_defaults(
+            input_data,
+            NUMERIC_DEFAULTS,
+            CATEGORICAL_DEFAULTS,
+        )
+
         log_usage(
             function_name="predict_cognitive_status_basic",
             metadata={k: filled_data.get(k) for k in BASIC_FEATURE_ORDER},
@@ -138,21 +153,42 @@ def predict_cognitive_status_basic(
             predicted_class=predicted_class,
             confidence=confidence,
             probabilities=probabilities,
-            prediction_id=str(uuid4()),
-            model_version="1.0.0",
+            top_features=None,
+            model_name=MODEL_NAME,
+            model_version=MODEL_VERSION,
         )
 
     except Exception as e:
-        import traceback
-        print("DEBUG: exception occurred:", e)
-        traceback.print_exc()
-        log_usage("predict_cognitive_status_basic_error", {}, {"error": str(e)})
+
+        log_usage(
+            function_name="predict_cognitive_status_basic_error",
+            metadata={"patient_id": getattr(input_schema, "patient_id", None)},
+            result={"error": str(e)},
+        )
+
         return AlzheimerDiagnosisBasicOutput(
-            patient_id=input_schema.patient_id,
+            patient_id=getattr(input_schema, "patient_id", None),
             predicted_class=None,
             confidence=0.0,
             probabilities={},
-            prediction_id=str(uuid4()),
-            model_version="1.0.0",
+            top_features=None,
+            model_name=MODEL_NAME,
+            model_version=MODEL_VERSION,
             error=str(e),
         )
+
+
+# -----------------------------
+# Self Registration
+# -----------------------------
+
+register_assessment(
+    assessment_type=ASSESSMENT_TYPE,
+    specialty=SPECIALTY,
+    predict_fn=predict_cognitive_status_basic,
+    input_schema=AlzheimerDiagnosisBasicInput,
+    output_schema=AlzheimerDiagnosisBasicOutput,
+)
+
+
+__all__ = ["predict_cognitive_status_basic"]

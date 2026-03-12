@@ -31,16 +31,6 @@ class AlzheimerPrognosis2yrBasicInput(BaseModel):
 # -------------------------------------
 class AlzheimerPrognosis2yrBasicOutput(PredictionResponseBase):
     patient_id: Optional[Union[str, int]] = None
-
-    model_name: str = Field(
-        "prognosis_2yr_basic_v1",
-        description="Model filename used for prediction"
-    )
-    model_version: str = Field(
-        "1.0.0",
-        description="Model version"
-    )
-
     # Backend returns these explicitly
     probability_progression_to_AD_within_2yrs: Optional[float] = Field(
         None, description="Probability the condition progresses within 2 years"
@@ -60,4 +50,12 @@ class AlzheimerPrognosis2yrBasicOutput(PredictionResponseBase):
 
     top_features: Optional[List[str]] = Field(
         None, description="Most influential features for prediction"
+    )
+    model_name: str = Field(
+        "Alzheimer_prognosis_2yr_basic-v1",
+        description="Model filename used for prediction"
+    )
+    model_version: str = Field(
+        "1.0.0",
+        description="Model version"
     )

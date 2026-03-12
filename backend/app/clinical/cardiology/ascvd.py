@@ -1,4 +1,4 @@
-# app/clinical/cardiology/ascvd_risk.py
+# app/clinical/cardiology/ascvd.py
 
 """
 ASCVD 10-Year Risk Calculator
@@ -11,8 +11,9 @@ Refactored for schema-based consistency and clinical safety.
 from uuid import uuid4
 import math
 from typing import Dict, Any
+from app.services.registry import register_assessment
 
-from app.schemas.cardiology import ASCVDRiskInput, ASCVDRiskOutput
+from app.schemas.cardiology.cardiology import ASCVDRiskInput, ASCVDRiskOutput
 from app.clinical.utils import log_usage
 from app.clinical.cardiology.ascvd_coefficients import _PCE_CONSTANTS
 
@@ -150,8 +151,8 @@ def calculate_ascvd(input_data: ASCVDRiskInput) -> ASCVDRiskOutput:
             patient_id=data.get("patient_id"),
             risk_percentage=risk_pct,
             risk_category=category,
-            prediction_id=str(uuid4()),
-            model_version="v1.0",
+            model_name="Cardiology_ascvd-v1",
+            model_version="1.0.0",
         )
 
     except Exception as e:
@@ -165,9 +166,18 @@ def calculate_ascvd(input_data: ASCVDRiskInput) -> ASCVDRiskOutput:
             patient_id=data.get("patient_id"),
             risk_percentage=0.0,
             risk_category="low",
-            prediction_id=str(uuid4()),
-            model_version="v1.0",
+            model_version="1.0.0",
         )
 
+# ===============================
+# Registry Registration
+# ===============================
+
+register_assessment(
+    name="ascvd_risk",
+    input_schema=ASCVDRiskInput,
+    output_schema=ASCVDRiskOutput,
+    runner=calculate_ascvd,
+)
 
 __all__ = ["calculate_ascvd"]

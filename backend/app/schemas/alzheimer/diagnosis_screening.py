@@ -23,10 +23,10 @@ class AlzheimerDiagnosisInput(BaseModel):
 # -----------------------------
 class AlzheimerDiagnosisOutput(PredictionResponseBase):
     patient_id: Optional[Union[str, int]] = Field(None, description="Patient identifier")
-    model_name: str = Field("Alazheimer-diagnosis-model-v1", description="Model used for prediction")
-    model_version: str = Field("1.0.0")
     predicted_class: Literal["CN", "MCI", "AD"]
     confidence: confloat(ge=0.0, le=1.0) = Field(..., description="Confidence between 0 and 1")
     probabilities: Dict[str, confloat(ge=0.0, le=1.0)]
     top_features: Optional[List[str]] = None
+    model_name: str = Field("Alazheimer_diagnosis_with_CDSUM-v1", description="Model used for prediction")
+    model_version: str = Field("1.0.0")
 

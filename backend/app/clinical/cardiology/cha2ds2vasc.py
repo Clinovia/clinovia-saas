@@ -6,8 +6,8 @@ Reference:
 """
 
 from typing import Literal, NamedTuple
-from app.schemas.cardiology import CHA2DS2VAScInput, CHA2DS2VAScOutput
-
+from app.schemas.cardiology.cardiology import CHA2DS2VAScInput, CHA2DS2VAScOutput
+from app.services.registry import register_assessment
 
 # ==========================================================
 # Core Logic
@@ -64,7 +64,14 @@ def calculate_cha2ds2vasc(data: CHA2DS2VAScInput) -> CHA2DS2VAScOutput:
         patient_id=data.patient_id,
         score=score,
         risk_category=risk_category,
-        model_name="cha2ds2vasc_rule_v1"
+        model_name="Cardiology_cha2ds2vasc-v1",
+        model_version="1.0.0"
     )
 
+register_assessment(
+    name="cha2ds2vasc",
+    input_schema=CHA2DS2VAScInput,
+    output_schema=CHA2DS2VAScOutput,
+    runner=calculate_cha2ds2vasc,
+)
 __all__ = ["calculate_cha2ds2vasc"]

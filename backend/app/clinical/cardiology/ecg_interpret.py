@@ -5,9 +5,9 @@ This is a rule-based decision-support component, not a standalone diagnostic too
 
 from typing import List, Literal
 from uuid import uuid4
-from app.schemas.cardiology import ECGInterpretationInput, ECGInterpretationOutput
+from app.schemas.cardiology.cardiology import ECGInterpretationInput, ECGInterpretationOutput
 from app.clinical.utils import log_usage
-
+from app.services.registry import register_assessment
 
 # ==========================================================
 # Input Validation
@@ -100,8 +100,7 @@ def interpret_ecg(data: ECGInterpretationInput) -> ECGInterpretationOutput:
             findings=findings,
             rhythm=rhythm,
             overall_risk=overall_risk,
-            prediction_id=str(uuid4()),
-            model_name="ecg_interpreter_rule_v1",
+            model_name="Cardiology_ecg_interpreter-v1",
             model_version="1.0.0"
         )
 
@@ -131,11 +130,16 @@ def interpret_ecg(data: ECGInterpretationInput) -> ECGInterpretationOutput:
             findings=["error"],
             rhythm="unknown",
             overall_risk="routine",
-            prediction_id=str(uuid4()),
-            model_name="ecg_interpreter_rule_v1",
+            model_name="Cardiology_ecg_interpreter-v1",
             model_version="1.0.0",
             error=str(e)
         )
 
+register_assessment(
+    name="ecg_interpretation",
+    input_schema=ECGInterpretationInput,
+    output_schema=ECGInterpretationOutput,
+    runner=interpret_ecg,
+)
 
 __all__ = ["interpret_ecg"]

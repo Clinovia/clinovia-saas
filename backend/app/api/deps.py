@@ -1,158 +1,166 @@
 """
-Dependency injection for FastAPI routes (Supabase-compatible).
-
-- Supabase is the source of truth for identity
-- JWTs are verified via ES256 + JWKS
-- Local users table is automatically synced (UID + Email)
+FastAPI dependency injection (Supabase-only, DB-optional)
 """
 
 import logging
 import json
 import base64
+import time
 from dataclasses import dataclass
 from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session as DBSession
-import httpx
+from fastapi import Depends, HTTPException, Request, status
 from authlib.jose import JsonWebKey, jwt as authlib_jwt
 
-from app.db.session import get_db
-
-# Services
-from app.services.cache import Cache
-from app.services.users.user_service import UserService
-from app.services.patients.patient_service import PatientService
-from app.services.assessments.patient_history_service import PatientHistoryService
+from app.core.config import settings
+from app.core import cache
+from app.core.http import async_client
 
 logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------
 # Supabase JWT configuration
 # -------------------------------------------------------
-SUPABASE_JWKS_URL = "https://cprwuuuvwaqttztaklam.supabase.co/auth/v1/.well-known/jwks.json"
 
-_JWK_SET: Optional[dict] = None
+SUPABASE_URL = settings.SUPABASE_URL
+
+if not SUPABASE_URL.startswith("http"):
+    SUPABASE_URL = "https://" + SUPABASE_URL.lstrip("/")
+
+SUPABASE_JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+
+JWKS_CACHE_KEY = "supabase_jwks"
+JWKS_CACHE_TIME_KEY = "supabase_jwks_time"
+JWKS_TTL = 600  # 10 minutes
+
+
+# -------------------------------------------------------
+# JWKS fetch with cache
+# -------------------------------------------------------
+
+async def get_jwks():
+
+    cached_jwks = cache.get_cached_prediction(JWKS_CACHE_KEY)
+    cached_time = cache.get_cached_prediction(JWKS_CACHE_TIME_KEY)
+
+    now = time.time()
+
+    if cached_jwks and cached_time and now - cached_time < JWKS_TTL:
+        return cached_jwks
+
+    resp = await async_client.get(SUPABASE_JWKS_URL)
+    resp.raise_for_status()
+
+    jwks = resp.json()
+
+    cache.set_cached_prediction(JWKS_CACHE_KEY, jwks)
+    cache.set_cached_prediction(JWKS_CACHE_TIME_KEY, now)
+
+    logger.debug("Supabase JWKS refreshed")
+
+    return jwks
+
 
 # -------------------------------------------------------
 # Auth context
 # -------------------------------------------------------
+
 @dataclass
 class AuthenticatedUser:
     id: str
     email: Optional[str] = None
 
-# -------------------------------------------------------
-# JWKS utilities
-# -------------------------------------------------------
-async def fetch_jwks() -> dict:
-    global _JWK_SET
-    if _JWK_SET is not None:
-        return _JWK_SET
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(SUPABASE_JWKS_URL, timeout=5)
-        resp.raise_for_status()
-        _JWK_SET = resp.json()
-        return _JWK_SET
+# -------------------------------------------------------
+# Decode JWT header
+# -------------------------------------------------------
 
+def decode_jwt_header(token: str) -> dict:
+
+    header_b64 = token.split(".")[0]
+    padding = "=" * (-len(header_b64) % 4)
+
+    return json.loads(
+        base64.urlsafe_b64decode(header_b64 + padding)
+    )
+
+
+# -------------------------------------------------------
+# JWT verification
+# -------------------------------------------------------
 
 async def verify_supabase_jwt(token: str) -> dict:
-    try:
-        header_b64 = token.split(".")[0]
-        header_b64 += "=" * (-len(header_b64) % 4)
-        header = json.loads(base64.urlsafe_b64decode(header_b64))
 
+    try:
+
+        header = decode_jwt_header(token)
         kid = header.get("kid")
-        jwks = await fetch_jwks()
-        key_data = next((k for k in jwks["keys"] if k.get("kid") == kid), None)
+
+        if not kid:
+            raise ValueError("JWT header missing 'kid'")
+
+        jwks = await get_jwks()
+
+        key_data = next(
+            (k for k in jwks.get("keys", []) if k.get("kid") == kid),
+            None,
+        )
 
         if not key_data:
-            raise ValueError("Matching JWK not found")
+            raise ValueError(f"No matching JWK for kid={kid}")
 
         key = JsonWebKey.import_key(key_data)
+
         claims = authlib_jwt.decode(token, key)
         claims.validate()
+
         return dict(claims)
 
-    except Exception as e:
-        logger.error("JWT verification failed", exc_info=e)
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+
+        logger.warning("JWT verification failed: %s", exc)
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
 
-# -------------------------------------------------------
-# Supabase authentication with DB sync
-# -------------------------------------------------------
-async def get_current_user(
-    request: Request,
-    db: DBSession = Depends(get_db),
-) -> AuthenticatedUser:
 
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
+# -------------------------------------------------------
+# Authentication dependency
+# -------------------------------------------------------
+
+async def get_current_user(request: Request) -> AuthenticatedUser:
+
+    auth_header = request.headers.get("Authorization")
+
+    if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
 
     token = auth_header.split(" ", 1)[1]
+
     payload = await verify_supabase_jwt(token)
 
-    # Supabase user ID (source of truth)
     user_id = payload.get("sub")
+    email = payload.get("email")
+
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Supabase token",
         )
 
-    email = payload.get("email")
+    return AuthenticatedUser(id=user_id, email=email)
 
-    # ---------------------------
-    # Sync with local users table
-    # ---------------------------
-    from app.db.models.users import User as UserModel
-
-    user = db.query(UserModel).filter(UserModel.id == user_id).first()
-    if not user:
-        user = UserModel(id=user_id, email=email)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        logger.info(f"Inserted new user {user_id} ({email}) into local users table")
-
-    return AuthenticatedUser(
-        id=user_id,
-        email=email,
-    )
 
 # -------------------------------------------------------
-# Annotated dependencies
+# Annotated dependency
 # -------------------------------------------------------
+
 CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
-
-# -------------------------------------------------------
-# Cache dependency
-# -------------------------------------------------------
-def get_cache() -> Cache:
-    return Cache.instance()
-
-CacheDep = Annotated[Cache, Depends(get_cache)]
-
-# -------------------------------------------------------
-# Service dependencies
-# -------------------------------------------------------
-def get_user_service(db: DBSession = Depends(get_db)) -> UserService:
-    return UserService(db)
-
-def get_patient_service(db: DBSession = Depends(get_db)) -> PatientService:
-    return PatientService(db)
-
-def get_patient_history_service(db: DBSession = Depends(get_db)) -> PatientHistoryService:
-    return PatientHistoryService(db)
-
-UserServiceDep = Annotated[UserService, Depends(get_user_service)]
-PatientServiceDep = Annotated[PatientService, Depends(get_patient_service)]
-PatientHistoryServiceDep = Annotated[PatientHistoryService, Depends(get_patient_history_service)]

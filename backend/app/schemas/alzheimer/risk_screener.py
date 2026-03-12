@@ -16,8 +16,8 @@ class AlzheimerRiskScreenerInput(BaseModel):
 
 class AlzheimerRiskScreenerOutput(PredictionResponseBase ):
     patient_id: Optional[Union[str, int]] = Field(None, description="Patient identifier")
-    model_name: str = "alz-risk-screener-heuristic-v1"
-    model_version: str = "1.0.0"
     risk_score: float
     risk_category: Literal["low", "moderate", "high", "error"]  # match test
     recommendation: str
+    model_name: str = "Alzheimer_risk_screener_heuristic-v1"
+    model_version: str = "1.0.0"

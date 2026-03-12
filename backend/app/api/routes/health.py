@@ -1,70 +1,95 @@
-# backend/app/api/routes/health.py
 """
-Health check endpoints for Clinovia SaaS API.
-Provides basic, database, and model readiness probes for monitoring and DevOps.
+Health check endpoints for Clinovia SaaS API (Supabase-only).
+
+Provides:
+- Basic liveness check
+- Supabase connectivity check
+- ML model readiness check
+
+Safe for ALB, uptime monitors, and container orchestration.
 """
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from fastapi import APIRouter
 import logging
+import httpx
+import os
 
-from app.api import deps
-from app.clinical.utils import (
-    load_model,
-    is_model_loaded,
-)
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["Health"])
 
 API_VERSION = "1.0.0"
 
 
+# ================================================================
+# Basic health check
+# ================================================================
+
 @router.get("/", summary="Basic health check")
 async def health_check() -> dict:
     """
-    Basic health check endpoint.
-    Used by uptime monitors or container orchestrators.
+    Liveness probe.
     """
-    return {"status": "healthy", "version": API_VERSION}
+    return {
+        "status": "healthy",
+        "version": API_VERSION,
+    }
 
 
-@router.get("/db", summary="Database health check")
-async def db_health_check(db: Session = Depends(deps.get_db)) -> dict:
+# ================================================================
+# Supabase connectivity check
+# ================================================================
+
+@router.get("/supabase", summary="Supabase connectivity check")
+async def supabase_health_check() -> dict:
     """
-    Verify database connectivity by executing a lightweight query.
+    Verifies Supabase is reachable (auth service).
     """
     try:
-        db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}
-    except Exception as exc:
-        logger.exception("Database health check failed")
-        return {"status": "unhealthy", "database": str(exc)}
+        url = settings.SUPABASE_URL
+        if not url.startswith("http"):
+            url = "https://" + url.lstrip("/")
 
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(f"{url}/auth/v1/health")
+
+        return {
+            "status": "healthy" if resp.status_code == 200 else "unhealthy",
+            "supabase_status_code": resp.status_code,
+        }
+
+    except Exception as exc:
+        logger.exception("Supabase health check failed")
+        return {
+            "status": "unhealthy",
+            "error": str(exc),
+        }
+
+
+# ================================================================
+# ML model readiness check
+# ================================================================
 
 @router.get("/models", summary="Model readiness check")
 async def models_health_check() -> dict:
     """
-    Check if ML models are loaded and ready for inference.
+    Check whether required ML model artifacts exist on disk.
+    Does NOT load models into memory.
     """
     models_status = {}
 
     try:
-        # Use a safe check — do NOT call load_model() without args
-        # Instead, check if model is already loaded or files exist
         from app.clinical.alzheimer.ml_models.diagnosis_extended import MODEL_PATH
-        import os
-        models_status["alzheimer"] = os.path.exists(MODEL_PATH)
+        models_status["alzheimer_diagnosis_extended"] = os.path.exists(MODEL_PATH)
     except Exception as exc:
-        logger.exception(f"Model health check failed: {exc}")
-        models_status["alzheimer"] = False
+        logger.exception("Alzheimer model health check failed")
+        models_status["alzheimer_diagnosis_extended"] = False
 
-    all_loaded = all(models_status.values())
+    all_ready = all(models_status.values())
 
     return {
-        "status": "healthy" if all_loaded else "unhealthy",
+        "status": "healthy" if all_ready else "unhealthy",
         "models": models_status,
-        "cached": models_status["alzheimer"],  # or use a real cache flag if you have one
     }

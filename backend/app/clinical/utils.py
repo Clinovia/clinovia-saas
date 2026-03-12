@@ -18,18 +18,56 @@ from typing import Any, Dict, Optional, List, Tuple
 
 import numpy as np
 import pandas as pd
-import torch
 
 # ============================================================
-# GLOBAL CONFIG
+# GLOBAL CONFIG — MODEL ROOT RESOLUTION (ROBUST)
 # ============================================================
 
-MODEL_ROOT = Path(
-    os.environ.get("CLINOVIA_MODEL_ROOT", "/opt/clinovia/models")
-).resolve()
+def _resolve_model_root() -> Path:
+    """
+    Resolve model root directory with priority:
 
-if not MODEL_ROOT.exists():
-    raise RuntimeError(f"MODEL_ROOT does not exist: {MODEL_ROOT}")
+    1. Explicit env var CLINOVIA_MODEL_ROOT
+    2. <project_root>/app/models  (Docker image layout)
+    3. <project_root>/models      (local dev)
+    4. /opt/clinovia/models       (legacy Docker)
+    """
+
+    # 1️⃣ Explicit env override
+    env_path = os.getenv("CLINOVIA_MODEL_ROOT")
+    if env_path:
+        p = Path(env_path).expanduser().resolve()
+        if p.exists():
+            print(f"✅ MODEL_ROOT resolved via ENV: {p}")
+            return p
+
+    # Base project root (…/app/)
+    project_root = Path(__file__).resolve().parents[2]
+
+    candidates = [
+        project_root / "models",                 # local dev: backend/models
+        project_root / "app" / "models",         # docker: /app/app/models
+        Path("/opt/clinovia/models"),            # legacy docker
+    ]
+
+    for path in candidates:
+        if path.exists():
+            print(f"✅ MODEL_ROOT resolved: {path.resolve()}")
+            return path.resolve()
+
+    # ❌ Nothing worked
+    raise RuntimeError(
+        "MODEL_ROOT could not be resolved.\n"
+        "Checked:\n"
+        " - $CLINOVIA_MODEL_ROOT\n"
+        " - project_root/models\n"
+        " - project_root/app/models\n"
+        " - /opt/clinovia/models"
+    )
+
+
+MODEL_ROOT = _resolve_model_root()
+
 
 # ============================================================
 # GENDER ENCODING
@@ -153,41 +191,6 @@ def build_df_from_order(
 
 
 # ============================================================
-# VIDEO CONVERSION
-# ============================================================
-
-def convert_to_mp4(input_path: str) -> str:
-    """Convert video to MP4 using FFmpeg."""
-    input_path = Path(input_path)
-    output_path = Path("/tmp") / f"{uuid.uuid4().hex}.mp4"
-
-    command = [
-        "ffmpeg",
-        "-y",
-        "-i", str(input_path),
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-movflags", "+faststart",
-        str(output_path),
-    ]
-
-    try:
-        subprocess.run(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"FFmpeg failed: {e.stderr.decode()}")
-
-    if not output_path.exists() or output_path.stat().st_size == 0:
-        raise RuntimeError("FFmpeg produced empty output")
-
-    return str(output_path)
-
-
-# ============================================================
 # MODEL LOADING (LOCAL-FIRST, NO S3)
 # ============================================================
 
@@ -226,13 +229,9 @@ def load_model(
     return model, preprocessor
 
 
-def is_model_loaded(model: Optional[torch.nn.Module]) -> bool:
-    """Check if PyTorch model is initialized and in eval mode."""
-    return (
-        model is not None
-        and isinstance(model, torch.nn.Module)
-        and not model.training
-    )
+def is_model_loaded(model: Optional[Any]) -> bool:
+    """Check if a model object is loaded."""
+    return model is not None
 
 
 # ============================================================

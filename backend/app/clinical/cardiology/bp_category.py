@@ -12,8 +12,9 @@ Categories:
 """
 
 from uuid import uuid4
-from app.schemas.cardiology import BPCategoryInput, BPCategoryOutput
+from app.schemas.cardiology.cardiology import BPCategoryInput, BPCategoryOutput
 from app.clinical.utils import log_usage
+from app.services.registry import register_assessment
 
 
 def categorize_blood_pressure(input_data: BPCategoryInput) -> BPCategoryOutput:
@@ -52,9 +53,8 @@ def categorize_blood_pressure(input_data: BPCategoryInput) -> BPCategoryOutput:
             systolic_bp=systolic,
             diastolic_bp=diastolic,
             category=category,
-            prediction_id=str(uuid4()),
-            model_version="v1.0",
-            model_name="bp_category_rule_v1",
+            model_name="Cardiology_bp_category-v1",
+            model_version="1.0.0",
         )
 
     except Exception as e:
@@ -72,11 +72,16 @@ def categorize_blood_pressure(input_data: BPCategoryInput) -> BPCategoryOutput:
             category="error",
             systolic_bp=getattr(input_data, "systolic_bp", None),
             diastolic_bp=getattr(input_data, "diastolic_bp", None),
-            prediction_id=str(uuid4()),
             model_version="v1.0",
             model_name="bp_category_rule_v1",
             error=str(e),
         )
 
+register_assessment(
+    name="blood_pressure_category",
+    input_schema=BPCategoryInput,
+    output_schema=BPCategoryOutput,
+    runner=categorize_blood_pressure,
+)
 
 __all__ = ["categorize_blood_pressure"]

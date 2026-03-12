@@ -1,29 +1,120 @@
-from uuid import UUID
-from sqlalchemy.orm import Session
+from typing import Optional
+from uuid import uuid4, UUID
+import os
+import logging
+
 from app.schemas.alzheimer.diagnosis_extended import (
     AlzheimerDiagnosisExtendedInput,
     AlzheimerDiagnosisExtendedOutput,
 )
-from app.clinical.alzheimer.ml_models.diagnosis_extended import predict_cognitive_status_extended
-from app.db.models.assessments import AssessmentType
-from app.services.assessment_pipeline import run_assessment_pipeline
+from app.clinical.alzheimer.ml_models.diagnosis_extended import (
+    predict_cognitive_status_extended,
+)
 
-def predict_diag_extended(
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------
+# Lazy Supabase client
+# ---------------------------------------------------------------------
+def get_supabase_client():
+    from supabase import create_client
+
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+
+    if not supabase_url or not supabase_key:
+        raise RuntimeError(
+            "Supabase credentials not set. Set SUPABASE_URL and SUPABASE_KEY."
+        )
+
+    return create_client(supabase_url, supabase_key)
+
+
+# ---------------------------------------------------------------------
+# UUID validation helper
+# ---------------------------------------------------------------------
+def validate_uuid(value: str, field_name: str) -> str:
+    try:
+        return str(UUID(value))
+    except Exception:
+        raise RuntimeError(f"Invalid UUID for {field_name}: {value}")
+
+
+# ---------------------------------------------------------------------
+# Alzheimer Diagnosis Extended (Supabase-only)
+# ---------------------------------------------------------------------
+def run_diagnosis_extended(
+    *,
     input_schema: AlzheimerDiagnosisExtendedInput,
-    db: Session,
-    clinician_id: UUID,
+    clinician_id: str,
+    patient_id: Optional[str] = None,
+    supabase_table: str = "assessments",
 ) -> AlzheimerDiagnosisExtendedOutput:
     """
-    Full pipeline for predicting cognitive status using the extended Alzheimer model.
+    Run Alzheimer extended cognitive diagnosis model and save result
+    to Supabase using standardized assessment schema.
     """
-    return run_assessment_pipeline(
-        input_schema=input_schema,
-        db=db,
-        clinician_id=clinician_id, 
-        model_function=predict_cognitive_status_extended,
-        assessment_type=AssessmentType.ALZHEIMER_DIAGNOSIS_EXTENDED,
-        specialty="alzheimer",
-        model_name="alz-diagnosis-extended-v1",
-        model_version="1.0.0",
-        use_cache=True,
+
+    # Ensure Pydantic input
+    input_data = (
+        input_schema
+        if isinstance(input_schema, AlzheimerDiagnosisExtendedInput)
+        else AlzheimerDiagnosisExtendedInput(**input_schema)
     )
+
+    # Validate UUIDs early (fail fast)
+    clinician_uuid = validate_uuid(clinician_id, "clinician_id")
+
+    if patient_id:
+        patient_uuid = validate_uuid(patient_id, "patient_id")
+    else:
+        patient_uuid = str(uuid4())
+
+    logger.info("Clinician UUID: %s", clinician_uuid)
+    logger.info("Patient UUID: %s", patient_uuid)
+
+    # Run clinical model
+    model_result = predict_cognitive_status_extended(input_data)
+
+    output: AlzheimerDiagnosisExtendedOutput = (
+        AlzheimerDiagnosisExtendedOutput(**model_result)
+        if isinstance(model_result, dict)
+        else model_result
+    )
+
+    # Standardized Supabase record
+    record = {
+        "clinician_id": clinician_uuid,
+        "patient_id": patient_uuid,
+        "assessment_type": "ALZHEIMER_DIAGNOSIS_EXTENDED",
+        "specialty": "alzheimer",
+        "model_name": "alzheimer-diagnosis-extended-v1",
+        "model_version": "1.0.0",
+        "status": "completed",
+        "input_data": input_data.model_dump(mode="json"),
+        "output_data": output.model_dump(mode="json"),
+    }
+
+    try:
+        supabase = get_supabase_client()
+
+        logger.info("Attempting Supabase insert...")
+        response = supabase.table(supabase_table).insert(record).execute()
+
+        logger.info("🔎 Supabase raw response: %s", response)
+
+        # supabase-py v2 handling
+        if hasattr(response, "error") and response.error:
+            logger.error("❌ Supabase error object: %s", response.error)
+            raise RuntimeError(response.error)
+
+        if not getattr(response, "data", None):
+            logger.error("❌ Supabase returned no data.")
+            raise RuntimeError("Insert succeeded but returned no data.")
+
+    except Exception as e:
+        logger.exception("🔥 Supabase insert failed")
+        raise RuntimeError(f"Database insert failed: {str(e)}")
+
+    return output

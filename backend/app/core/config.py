@@ -1,86 +1,90 @@
+# bacnkend/app/core/config.py
+
 """
-Application configuration settings, Supabase-ready.
+Application configuration settings.
+Optimized for Supabase-authenticated FastAPI services.
 """
+
 import os
 import json
-from typing import List
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.engine.url import URL
+from typing import List, Optional
+
 
 class Settings:
-    """Application settings with support for testing mode and Supabase integration."""
+    """
+    Centralized application settings.
 
-    # --- General ---
+    Design principles:
+    - Environment-driven
+    - Verification-only JWT (Supabase)
+    - No token issuance
+    - Explicit dev / prod separation
+    """
+
+    # ------------------------------------------------------------------
+    # Environment
+    # ------------------------------------------------------------------
+
+    ENV: str = os.getenv("ENV", "development")
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    TESTING: bool = os.getenv("TESTING", "false").lower() == "true"
+
+    # ------------------------------------------------------------------
+    # Application
+    # ------------------------------------------------------------------
+
     PROJECT_NAME: str = "Clinovia"
-    SECRET_KEY: str = os.getenv(
-        "SECRET_KEY", "super-secret-key-change-in-production"
-    )
-    ALGORITHM: str = "HS256"
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
-    TESTING: bool = os.getenv("TESTING", "False").lower() == "true"
-
-    # --- OAuth2 (for Supabase JWTs) ---
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-    # --- Supabase ---
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_SERVICE_KEY: str = os.getenv("SUPABASE_SERVICE_KEY", "")
-
-    # --- Stripe ---
-    STRIPE_API_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_placeholder")
-
-    # --- API ---
     API_V1_STR: str = os.getenv("API_V1_STR", "/api/v1")
 
-    # --- CORS ---
+    # ------------------------------------------------------------------
+    # Supabase (JWT verification only)
+    # ------------------------------------------------------------------
+
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY")
+
+    # JWT verification parameters
+    SUPABASE_JWT_AUDIENCE: str = os.getenv(
+        "SUPABASE_JWT_AUD", "authenticated"
+    )
+    SUPABASE_JWT_ISSUER: str = os.getenv(
+        "SUPABASE_JWT_ISSUER", ""
+    )
+    SUPABASE_JWT_PUBLIC_KEY: str = os.getenv(
+        "SUPABASE_JWT_PUBLIC_KEY", ""
+    )
+
+    # ------------------------------------------------------------------
+    # CORS
+    # ------------------------------------------------------------------
+
     BACKEND_CORS_ORIGINS: List[str] = json.loads(
         os.getenv(
             "BACKEND_CORS_ORIGINS",
-            '["http://localhost", "http://localhost:3000"]'
+            '["http://localhost:3000","http://127.0.0.1:3000"]'
         )
     )
 
-    # --- Ejection Fraction service ---
-    EF_SERVICE_URL: str = os.getenv("EF_SERVICE_URL", "http://localhost:8081")
-    EF_SERVICE_TIMEOUT: float = float(os.getenv("EF_SERVICE_TIMEOUT", 120.0))
+    # ------------------------------------------------------------------
+    # Safety checks
+    # ------------------------------------------------------------------
 
-    class Config:
-        env_file = ".env"
-
-    @property
-    def DATABASE_URL(self) -> str:
+    def validate(self) -> None:
         """
-        Returns the SQLAlchemy database URL.
-        - SQLite in-memory for testing.
-        - Supabase DATABASE_URL if provided.
-        - Otherwise build from components (fallback).
+        Validate critical settings at startup.
+        Prevents half-configured deployments.
         """
-        if self.TESTING:
-            return "sqlite:///:memory:"
-
-        # Use explicit DATABASE_URL first (Supabase)
-        explicit_url = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DATABASE_URL")
-        if explicit_url:
-            # Convert Heroku-style URL if needed
-            if explicit_url.startswith("postgres://"):
-                explicit_url = explicit_url.replace(
-                    "postgres://", "postgresql+psycopg2://", 1
-                )
-            return explicit_url
-
-        # Fallback to components (local dev)
-        return str(
-            URL.create(
-                drivername="postgresql+psycopg2",
-                username=os.getenv("POSTGRES_USER", "clinovia_user"),
-                password=os.getenv("POSTGRES_PASSWORD", "clinovia_pass"),
-                host=os.getenv("POSTGRES_HOST", "localhost"),
-                port=os.getenv("POSTGRES_PORT", "5432"),
-                database=os.getenv("POSTGRES_DB", "clinovia_db"),
-            )
-        )
+        if self.ENV == "production":
+            assert self.SUPABASE_URL, "SUPABASE_URL must be set in production"
+            assert (
+                self.SUPABASE_JWT_PUBLIC_KEY
+            ), "SUPABASE_JWT_PUBLIC_KEY must be set in production"
 
 
-# Single settings instance to use everywhere
+# ----------------------------------------------------------------------
+# Singleton settings instance
+# ----------------------------------------------------------------------
+
 settings = Settings()
+settings.validate()
+__all__ = ["settings"]

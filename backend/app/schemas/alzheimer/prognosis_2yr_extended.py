@@ -82,17 +82,6 @@ class AlzheimerPrognosis2yrExtendedOutput(PredictionResponseBase):
     patient_id: Optional[Union[str, int]] = Field(
         None, description="Patient identifier (echoed from input)"
     )
-
-    model_name: str = Field(
-        default="prognosis_2yr_extended_v1",
-        description="Model identifier for the extended progression model"
-    )
-
-    model_version: str = Field(
-        default="1.0.0",
-        description="Model version"
-    )
-
     # Probabilities
     probability_progression_to_AD_within_2yrs: Optional[float] = Field(
         None,
@@ -126,4 +115,13 @@ class AlzheimerPrognosis2yrExtendedOutput(PredictionResponseBase):
     error: Optional[str] = Field(
         None,
         description="Error message if model failed to produce a prediction."
+    )
+    model_name: str = Field(
+        default="Alzheimer_prognosis_2yr_extended-v1",
+        description="Model identifier for the extended progression model"
+    )
+
+    model_version: str = Field(
+        default="1.0.0",
+        description="Model version"
     )

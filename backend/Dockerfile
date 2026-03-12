@@ -1,3 +1,4 @@
+# clinovia-saas/backend/Dockerfile
 # ============================
 # FastAPI + Uvicorn + ML Dockerfile
 # ============================
@@ -7,6 +8,7 @@ FROM python:3.11-slim
 # Prevent Python from writing pyc files
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV CLINOVIA_MODEL_ROOT=/app/models
 
 # Set working directory
 WORKDIR /app
